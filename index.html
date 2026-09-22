@@ -468,10 +468,75 @@
     #result-slide{position:relative;background:#0B0E10;color:#F4F2ED;
       height:100vh;min-height:100vh;max-height:100vh;
       overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
-      padding:clamp(28px,5vw,64px) clamp(22px,6vw,72px) clamp(56px,8vw,96px);
+      --rs-pad-top:clamp(28px,5vw,64px);
+      padding:var(--rs-pad-top) clamp(22px,6vw,72px) clamp(56px,8vw,96px);
       display:block;}
     #rs-wrap{width:100%;max-width:520px;margin:0 auto}
     #rs-card{background:transparent}
+    /* the old two-part composition is kept only to feed the save/share image */
+    #rs-art-wrap,#rs-body-wrap{display:none}
+
+    /* Eight cards laid on a ring around an empty middle. The ring turns, slows,
+       and the viewer's card leaves the ring for the centre. The stage owns a
+       full screen so the ring has room; the finished card stays inside it. */
+    #rs-stage{
+      position:relative;width:100%;height:100dvh;min-height:520px;
+      /* pulled up by the slide's own padding, so the middle of the stage is the
+         middle of the screen while the result is pinned to the top */
+      margin-top:calc(-1 * var(--rs-pad-top));
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;transition:opacity .5s ease;
+    }
+    #rs-stage.in{opacity:1}
+    #rs-deck{position:relative;width:100%;height:100%;perspective:1400px}
+    #rs-ring{position:absolute;inset:0}
+
+    .rs-cd{
+      position:absolute;left:50%;top:50%;
+      width:var(--cardw);
+      margin-left:calc(var(--cardw) / -2);
+      margin-top:calc(var(--cardh) / -2);
+      transform-origin:50% 50%;
+      will-change:transform;
+    }
+    .rs-in{transform-origin:50% 50%}
+    .rs-cd.pop .rs-in{animation:rs-pop .72s cubic-bezier(.22,1,.36,1) both}
+    .rs-cd img{
+      display:block;width:100%;height:auto;border-radius:12px;
+      background:#0B0E10;box-shadow:0 24px 60px rgba(0,0,0,.6);
+    }
+    .rs-cd.chosen{z-index:6}
+
+    /* code on the left, type name on the right, under each card */
+    .rs-cap{
+      display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+      margin-top:calc(var(--cardw) * .045);
+      font-size:calc(var(--cardw) * .058);
+      letter-spacing:.02em;color:rgba(244,242,237,.72);
+      white-space:nowrap;overflow:hidden;
+      transition:opacity .4s ease;
+    }
+    .rs-cap b{font-weight:700;color:#F4F2ED;letter-spacing:.06em}
+    .rs-cap span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+    .rs-cd.chosen.home .rs-cap{opacity:0}
+
+    /* each card arrives on its own beat, while the ring is already turning */
+    @keyframes rs-pop{from{transform:scale(0)}to{transform:scale(1)}}
+
+    #rs-tagline{
+      position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+      margin:0;z-index:8;pointer-events:none;white-space:nowrap;
+      font-size:clamp(13px,1.5vw,18px);font-weight:700;
+      letter-spacing:.22em;color:#F4F2ED;
+      opacity:1;transition:opacity .35s ease;
+    }
+    #rs-deck.chosenmoving #rs-tagline{opacity:0}
+
+    #rs-card-link{position:absolute;inset:38% 0 0 0;z-index:7;cursor:pointer;-webkit-tap-highlight-color:transparent;opacity:0;pointer-events:none}
+    #rs-stage.locked #rs-card-link{opacity:1;pointer-events:auto}
+    @media (prefers-reduced-motion:reduce){
+      #rs-stage.locked .rs-cd.chosen{animation:none}
+    }
     #rs-art-wrap{position:relative;width:100%;overflow:hidden;background:#0B0E10;
       box-shadow:0 22px 60px rgba(0,0,0,.5)}
     #rs-art{display:block;width:100%;height:auto;
@@ -791,6 +856,13 @@
   <div class="slide" id="result-slide">
     <div id="rs-wrap">
       <div id="rs-card">
+        <div id="rs-stage">
+          <div id="rs-deck" aria-hidden="true">
+            <div id="rs-ring"></div>
+            <p id="rs-tagline">DISCOVER MY MOVEMENT</p>
+          </div>
+          <a id="rs-card-link" target="_blank" rel="noopener" aria-label="Vehicle details"></a>
+        </div>
         <div id="rs-art-wrap"><img id="rs-art" alt=""><div id="rs-hz"></div>
           <p id="rs-missing">The result image could not be loaded.<br>
              Check that the <code>assets/</code> folder was uploaded too.</p></div>
@@ -2718,19 +2790,18 @@
       box.appendChild(a);
     });
     applyCard(code, 'bw');
+    preloadFinalCards();
 
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    revealFinalCard(code, function () {
+      document.getElementById('rs-tail').classList.add('up');
+      pinScroll();
+    });
     if (reduce) {
-      art.classList.add('open'); const bw = document.getElementById('rs-body-wrap'); if (bw) bw.classList.add('up');
       document.getElementById('rs-tail').classList.add('up');
       return;
     }
-    setTimeout(() => line.classList.add('draw'), 260);
-    setTimeout(() => art.classList.add('open'), 560);
-    setTimeout(() => line.classList.add('gone'), 860);
-    setTimeout(() => { const bw = document.getElementById('rs-body-wrap'); if (bw) bw.classList.add('up'); }, 1060);
-    setTimeout(() => document.getElementById('rs-tail').classList.add('up'), 1420);
-    [0, 300, 900, 1600].forEach(t => setTimeout(pinScroll, t));
+    [0, 300, 900, 1600, 2400].forEach(t => setTimeout(pinScroll, t));
   }
 
   function restartQuiz(){
@@ -2814,6 +2885,197 @@
       el.addEventListener('error', res, { once:true });
     });
   }
+  // ── Final card reveal ──
+  // The face runs through the set and decelerates onto the viewer's own card.
+  // It reads as "one of these is yours", not as a spin of chance: there is no
+  // pointer, no wheel, and the run always ends on the card the answers produced.
+  const FINAL_CODES = ['EP', 'RP', 'RF', 'EF'];   // four made so far; shown twice
+  const FINAL_IMGS = {};
+
+  function preloadFinalCards() {
+    FINAL_CODES.forEach(function (c) {
+      const im = new Image();
+      im.src = A('assets/final_card_' + c + '.png');
+      FINAL_IMGS[c] = im;
+    });
+  }
+
+  // The eight types. Four card faces, each carrying two variants — which is why
+  // the ring shows every artwork twice.
+  // NOTE: two of the supplied files are named for the wrong type — the artwork
+  // printed EPW/01 sits in final_card_EF.png and EFW/03 sits in final_card_EP.png.
+  // `img` below points at the file that actually holds each artwork.
+  const CARD_TYPES = [
+    { code: 'EPW', img: 'EF', name: 'The Long Way · 롱 런 캡틴' },
+    { code: 'EPM', img: 'EF', name: 'The Long Way · 롱 런 플래너' },
+    { code: 'EFW', img: 'EP', name: 'Unmapped Road · 우회로 탐험대' },
+    { code: 'EFM', img: 'EP', name: 'Unmapped Road · 지도 밖 수집가' },
+    { code: 'RPW', img: 'RP', name: 'The Quiet Road · 베이스캠프 설계자' },
+    { code: 'RPM', img: 'RP', name: 'The Quiet Road · 힐링 설계자' },
+    { code: 'RFW', img: 'RF', name: 'The Open Road · 해안도로 동승자' },
+    { code: 'RFM', img: 'RF', name: 'The Open Road · 즉흥 휴식러' }
+  ];
+
+  const RING_N = CARD_TYPES.length;
+  const CARD_VH = 0.80;        // the finished card, as a share of the stage height
+  const RING_SCALE = 0.52;     // how big a card rides on the ring
+  const RING_R = 0.50;         // ring radius — wide enough that the screen crops the ring
+  const RING_TURNS = 1.0;      // turns before it comes to rest
+  const DEAL_STEP = 110;       // gap between cards arriving
+  const SPIN_MS = 4200;        // the turn itself — unhurried
+  const LAND_AT = 2600;        // the chosen card starts moving in while the ring still turns
+  const LAND_MS = 1150;
+
+  function revealFinalCard(code, done) {
+    const stage = document.getElementById('rs-stage');
+    const ring = document.getElementById('rs-ring');
+    const link = document.getElementById('rs-card-link');
+    if (!stage || !ring) { if (done) done(); return; }
+
+    const src = function (c) { return A('assets/final_card_' + c + '.png'); };
+    if (link) link.href = VEHICLE_URLS[code] || '#';
+
+    ring.innerHTML = '';
+    stage.classList.remove('locked');
+    const deck0 = document.getElementById('rs-deck');
+    if (deck0) deck0.classList.remove('chosenmoving');
+
+    // RS_CODE is still the four-way family; take the first variant of it until
+    // the eight-way result logic lands.
+    let chosenAt = CARD_TYPES.findIndex(function (t) { return t.code.slice(0, 2) === code; });
+    if (chosenAt < 0) chosenAt = 0;
+
+    // the card box is sized off the stage height, so it never fills the screen
+    function sizeCards() {
+      const h = stage.clientHeight || 600;
+      const cw = (h * CARD_VH) * (940 / 1672);
+      ring.style.setProperty('--cardw', cw.toFixed(1) + 'px');
+      ring.style.setProperty('--cardh', (h * CARD_VH).toFixed(1) + 'px');
+    }
+    sizeCards();
+
+    const cards = CARD_TYPES.map(function (t, i) {
+      const el = document.createElement('div');
+      el.className = 'rs-cd';
+      const inner = document.createElement('div');
+      inner.className = 'rs-in';
+      inner.style.transform = 'scale(0)';
+      const im = document.createElement('img');
+      im.alt = '';
+      im.src = src(t.img);
+      inner.appendChild(im);
+      const cap = document.createElement('div');
+      cap.className = 'rs-cap';
+      cap.innerHTML = '<b>' + t.code + '</b><span>' + t.name + '</span>';
+      inner.appendChild(cap);
+      el.appendChild(inner);
+      ring.appendChild(el);
+      return { el: el };
+    });
+    cards[chosenAt].el.classList.add('chosen');
+
+    // Cards ride upright — they orbit, they do not tumble. `pull` closes the
+    // ring: everything gathers in the middle and the chosen card grows on top,
+    // so nothing has to be faded away.
+    function place(spin, pull) {
+      const R = (stage.clientHeight || 600) * RING_R * (1 - pull);
+      for (let i = 0; i < cards.length; i++) {
+        const cd = cards[i];
+        const a = (i / RING_N) * Math.PI * 2 + spin - Math.PI / 2;
+        const sc = (i === chosenAt) ? RING_SCALE + (1 - RING_SCALE) * pull : RING_SCALE;
+        cd.el.style.transform =
+          'translate(' + (Math.cos(a) * R).toFixed(1) + 'px,' + (Math.sin(a) * R).toFixed(1) + 'px)' +
+          ' scale(' + sc.toFixed(4) + ')';
+      }
+    }
+
+    const restSpin = -(chosenAt / RING_N) * Math.PI * 2;
+    const totalSpin = restSpin - RING_TURNS * Math.PI * 2;
+
+    place(0, 0);
+    requestAnimationFrame(function () { stage.classList.add('in'); });
+
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      cards.forEach(function (cd) {
+        const inner = cd.el.firstChild;
+        if (inner) inner.style.transform = '';
+      });
+      place(totalSpin, 1);
+      cards[chosenAt].el.classList.add('home');
+      const deckR = document.getElementById('rs-deck');
+      if (deckR) deckR.classList.add('chosenmoving');
+      attachTilt(cards[chosenAt].el, stage);
+      stage.classList.add('locked');
+      if (done) done();
+      return;
+    }
+
+    // The ring is already turning as the cards arrive — they land into a moving
+    // ring rather than waiting for it to start.
+    const deck = document.getElementById('rs-deck');
+    cards.forEach(function (cd, i) {
+      setTimeout(function () {
+        const inner = cd.el.firstChild;
+        if (inner) inner.style.transform = '';
+        cd.el.classList.add('pop');
+      }, 140 + i * DEAL_STEP);
+    });
+
+    const t0 = performance.now() + 120;
+    function frame(now) {
+      const e = now - t0;
+      if (e < 0) { requestAnimationFrame(frame); return; }
+      const st = Math.min(1, e / SPIN_MS);
+      const sk = 1 - Math.pow(1 - st, 3);            // turns, then eases off
+      const lt = Math.min(1, Math.max(0, (e - LAND_AT) / LAND_MS));
+      const lk = 1 - Math.pow(1 - lt, 3);
+      place(totalSpin * sk, lk);
+      if (lt > 0 && deck) deck.classList.add('chosenmoving');
+      if (lt > 0.35) cards[chosenAt].el.classList.add('home');
+      if (st < 1 || lt < 1) { requestAnimationFrame(frame); return; }
+      stage.classList.add('locked');
+      attachTilt(cards[chosenAt].el, stage);
+      if (done) done();
+    }
+    requestAnimationFrame(frame);
+
+    window.addEventListener('resize', sizeCards);
+  }
+
+  // Once the card has settled it follows the cursor — a slight lean toward
+  // wherever the pointer is, eased so it never snaps.
+  let tiltRaf = null;
+  function attachTilt(el, stage) {
+    if (!el || !stage) return;
+    const MAX = 11;                       // degrees
+    let tx = 0, ty = 0, cx = 0, cy = 0, live = false;
+
+    function onMove(e) {
+      const r = stage.getBoundingClientRect();
+      const px = (e.clientX - r.left) / Math.max(1, r.width) - 0.5;
+      const py = (e.clientY - r.top) / Math.max(1, r.height) - 0.5;
+      ty = Math.max(-MAX, Math.min(MAX, px * 2 * MAX));      // left/right turns around Y
+      tx = Math.max(-MAX, Math.min(MAX, -py * 2 * MAX));     // up/down tips around X
+      live = true;
+    }
+    function onLeave() { tx = 0; ty = 0; }
+
+    window.addEventListener('pointermove', onMove, { passive: true });
+    document.addEventListener('pointerleave', onLeave);
+
+    if (tiltRaf) cancelAnimationFrame(tiltRaf);
+    function loop() {
+      cx += (tx - cx) * 0.09;
+      cy += (ty - cy) * 0.09;
+      if (live || Math.abs(cx) > 0.01 || Math.abs(cy) > 0.01) {
+        el.style.transform =
+          'translate(0px,0px) scale(1) rotateX(' + cx.toFixed(2) + 'deg) rotateY(' + cy.toFixed(2) + 'deg)';
+      }
+      tiltRaf = requestAnimationFrame(loop);
+    }
+    tiltRaf = requestAnimationFrame(loop);
+  }
+
   function prepFile(){
     RS_FILE = null;
     const art  = document.getElementById('rs-art');
