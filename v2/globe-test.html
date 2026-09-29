@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Movement Navigator — v2 scene test</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#05070C}
+  body{font-family:Pretendard,-apple-system,system-ui,sans-serif;color:#F4F2ED}
+
+  #scene{position:fixed;inset:0;width:100vw;height:100dvh;overflow:hidden}
+
+  /* ── sky: layered behind the 3D, so the palette stays under our control ── */
+  #sky{position:absolute;inset:0;transition:none}
+  /* the warm band only turns up in the last two steps */
+  #glow{
+    position:absolute;left:50%;bottom:0;width:190%;height:62%;
+    transform:translateX(-50%);opacity:0;pointer-events:none;
+  }
+  #stars{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+  #moon,#sun{
+    position:absolute;border-radius:50%;pointer-events:none;
+    will-change:transform,opacity;
+  }
+  #moon{background:radial-gradient(circle at 38% 34%,#FFFDF6,#D8DCE4 62%,#AEB6C2);}
+  #sun{background:radial-gradient(circle at 50% 50%,#FFF6E4,#FFD9A0 55%,#F6B26B);}
+
+  #gl{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+  /* ── dev panel ── */
+  #dev{
+    position:fixed;left:16px;bottom:16px;z-index:50;
+    background:rgba(8,10,14,.78);backdrop-filter:blur(8px);
+    border:1px solid rgba(255,255,255,.14);border-radius:10px;
+    padding:12px 14px;font-size:12px;line-height:1.6;min-width:280px;
+  }
+  #dev h4{font-size:11px;letter-spacing:.14em;opacity:.6;margin-bottom:8px;font-weight:700}
+  #dev label{display:flex;align-items:center;gap:10px;margin:6px 0}
+  #dev label span:first-child{width:74px;opacity:.7}
+  #dev input[type=range]{flex:1;accent-color:#9FE7FF}
+  #dev output{width:46px;text-align:right;font-variant-numeric:tabular-nums}
+  #dev .row{display:flex;gap:6px;margin-top:10px}
+  #dev button{
+    flex:1;padding:6px 8px;border-radius:6px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.2);background:transparent;color:#F4F2ED;
+    font-family:inherit;font-size:11px;
+  }
+  #dev button:hover{background:rgba(255,255,255,.1)}
+  #stagename{opacity:.62;margin-top:8px;font-size:11px}
+</style>
+</head>
+<body>
+
+<div id="scene">
+  <div id="sky"></div>
+  <div id="glow"></div>
+  <canvas id="stars"></canvas>
+  <div id="moon"></div>
+  <div id="sun"></div>
+  <canvas id="gl"></canvas>
+</div>
+
+<div id="dev">
+  <h4>SCENE TEST</h4>
+  <label><span>하늘 단계</span><input id="s-stage" type="range" min="0" max="6" step="0.01" value="0"><output id="o-stage">0.00</output></label>
+  <label><span>행성 반지름</span><input id="s-radius" type="range" min="5" max="26" step="0.5" value="11"><output id="o-radius">11</output></label>
+  <label><span>카메라 높이</span><input id="s-camy" type="range" min="0.4" max="4" step="0.05" value="2.7"><output id="o-camy">2.7</output></label>
+  <label><span>카메라 거리</span><input id="s-camz" type="range" min="2" max="12" step="0.1" value="5"><output id="o-camz">5</output></label>
+  <label><span>주행 속도</span><input id="s-speed" type="range" min="0" max="0.6" step="0.01" value="0.16"><output id="o-speed">0.16</output></label>
+  <label><span>시선 거리</span><input id="s-look" type="range" min="0" max="16" step="0.25" value="5.5"><output id="o-look">5.5</output></label>
+  <div class="row">
+    <button id="b-play">밤 → 아침 재생</button>
+    <button id="b-reset">처음으로</button>
+  </div>
+  <div id="stagename">0 · 깊은 밤</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ── The seven skies. Warm light is held back until the last two, so the
+  //    arrival of colour is the reward rather than the wallpaper. ──
+  const GREEN = 0x27D46B, RED = '#E4322B';
+  const SKIES = [
+    { name: '깊은 밤',      top:'#000000', mid:'#03060A', bot:'#05090E', warm:0,    star:1.00 },
+    { name: '달이 기울다',   top:'#000000', mid:'#04070C', bot:'#080D14', warm:0,    star:0.92 },
+    { name: '옅은 띠',      top:'#010204', mid:'#05090F', bot:'#0D141D', warm:0,    star:0.74 },
+    { name: '블루 아워',     top:'#03060B', mid:'#0B1520', bot:'#1B2937', warm:0,    star:0.34 },
+    { name: '지평선이 트다', top:'#0A1119', mid:'#1A2833', bot:'#3A4C5A', warm:0.12, star:0.08 },
+    { name: '해의 윗머리',   top:'#18222C', mid:'#3A4C58', bot:'#7C8A93', warm:0.58, star:0    },
+    { name: '일출',         top:'#2C3842', mid:'#76838C', bot:'#C2C9CD', warm:1.00, star:0    }
+  ];
+
+  const sky   = document.getElementById('sky');
+  const glow  = document.getElementById('glow');
+  const moon  = document.getElementById('moon');
+  const sun   = document.getElementById('sun');
+  const starC = document.getElementById('stars');
+  const starX = starC.getContext('2d');
+
+  function hex(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+  function mix(a,b,t){ return [0,1,2].map(function(i){ return Math.round(a[i]+(b[i]-a[i])*t); }); }
+  function rgb(c){ return 'rgb('+c[0]+','+c[1]+','+c[2]+')'; }
+
+  let stars = [];
+  function seedStars(){
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const w = innerWidth, h = innerHeight;
+    starC.width = Math.round(w * dpr);
+    starC.height = Math.round(h * dpr);
+    starX.setTransform(dpr, 0, 0, dpr, 0, 0);
+    stars = [];
+    for (let i=0;i<170;i++){
+      stars.push({ x:Math.random()*w, y:Math.random()*h*0.72, r:Math.random()*1.3+0.3, a:Math.random()*0.7+0.3 });
+    }
+  }
+
+  // ── sky, moon, sun and stars all read from one number: where we are between
+  //    the first question and the last ──
+  function paintSky(stage){
+    const i = Math.max(0, Math.min(6, Math.floor(stage)));
+    const j = Math.min(6, i+1);
+    const t = stage - i;
+    const A = SKIES[i], B = SKIES[j];
+    const top = rgb(mix(hex(A.top), hex(B.top), t));
+    const mid = rgb(mix(hex(A.mid), hex(B.mid), t));
+    const bot = rgb(mix(hex(A.bot), hex(B.bot), t));
+    sky.style.background = 'linear-gradient(180deg,'+top+' 0%,'+mid+' 54%,'+bot+' 100%)';
+
+    const warm = A.warm + (B.warm - A.warm) * t;
+    glow.style.opacity = warm.toFixed(3);
+    glow.style.background =
+      'radial-gradient(ellipse at 50% 100%,' +
+      'rgba(255,206,150,'+(0.78*warm).toFixed(3)+') 0%,' +
+      'rgba(246,178,107,'+(0.42*warm).toFixed(3)+') 34%,' +
+      'rgba(214,150,110,0) 72%)';
+
+    // moon sets to the left as the sun climbs on the right — one exchange,
+    // not two separate events
+    const W = innerWidth, H = innerHeight, p = stage/6;
+    const md = 74, sd = 96;
+    moon.style.width = moon.style.height = md+'px';
+    sun.style.width  = sun.style.height  = sd+'px';
+    const ma = Math.PI * (0.18 + p*0.62);
+    moon.style.transform = 'translate(' + (W*(0.72 - p*0.66) - md/2) + 'px,' +
+                           (H*(0.16 + Math.sin(ma)*0.02 + p*0.78) - md/2) + 'px)';
+    moon.style.opacity = Math.max(0, 1 - Math.max(0, (stage-2.6)/2.2)).toFixed(3);
+
+    sun.style.transform = 'translate(' + (W*(0.16 + p*0.52) - sd/2) + 'px,' +
+                          (H*(1.24 - p*0.62) - sd/2) + 'px)';
+    sun.style.opacity = Math.max(0, Math.min(1, (stage-4.1)/1.3)).toFixed(3);
+    sun.style.filter = 'blur(' + (10 - Math.min(1,(stage-4.1)/1.9)*8).toFixed(1) + 'px)';
+
+    const sa = A.star + (B.star - A.star) * t;
+    starX.clearRect(0, 0, innerWidth, innerHeight);
+    if (sa > 0.01){
+      for (let k=0;k<stars.length;k++){
+        const s = stars[k];
+        starX.fillStyle = 'rgba(255,255,255,'+(s.a*sa).toFixed(3)+')';
+        starX.beginPath(); starX.arc(s.x,s.y,s.r,0,6.283); starX.fill();
+      }
+    }
+    return { warm: warm, lift: stage/6 };
+  }
+
+  // ─────────────────────────────────────────────────────────
+  //  the planet
+  // ─────────────────────────────────────────────────────────
+  // The planet is built inside its own guard: if WebGL will not start, the sky
+  // still runs and the page stays useful instead of going blank.
+  const canvas = document.getElementById('gl');
+  let renderer = null, scene = null, camera = null, planet = null, car = null,
+      ambient = null, keyLight = null, gl3d = false;
+
+  try {
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(42, 1, 0.1, 400);
+    gl3d = true;
+  } catch (e) {
+    canvas.style.display = 'none';
+    const n = document.createElement('p');
+    n.style.cssText = 'position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:40;' +
+      'font-size:12px;letter-spacing:.1em;opacity:.55;text-align:center';
+    n.textContent = 'WEBGL UNAVAILABLE — SKY ONLY';
+    document.body.appendChild(n);
+  }
+
+  if (gl3d) {
+    ambient = new THREE.AmbientLight(0xffffff, 0.35);
+    scene.add(ambient);
+    keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    scene.add(keyLight);
+  }
+
+  // A drawn grid rather than geometry: meridians and parallels land exactly
+  // where we want them, and the line weight stays constant at any planet size.
+  function surfaceTexture(){
+    const W = 2048, H = 1024;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    x.fillStyle = '#000000'; x.fillRect(0,0,W,H);
+    x.lineCap = 'round';
+    x.shadowColor = 'rgba(39,212,107,.85)';
+
+    function grid(step, wide, alpha, blur){
+      x.lineWidth = wide; x.shadowBlur = blur;
+      // meridians fade out toward the poles, where they all converge on one
+      // point — otherwise that point sits under the car as a hot green streak
+      for (let i=0;i<=W;i+=step){
+        const g = x.createLinearGradient(0,0,0,H);
+        g.addColorStop(0,   'rgba(39,212,107,0)');
+        g.addColorStop(0.22,'rgba(39,212,107,'+alpha+')');
+        g.addColorStop(0.78,'rgba(39,212,107,'+alpha+')');
+        g.addColorStop(1,   'rgba(39,212,107,0)');
+        x.strokeStyle = g;
+        x.beginPath(); x.moveTo(i,0); x.lineTo(i,H); x.stroke();
+      }
+      x.strokeStyle = 'rgba(39,212,107,'+alpha+')';
+      for (let j=step;j<H;j+=step){ x.beginPath(); x.moveTo(0,j); x.lineTo(W,j); x.stroke(); }
+    }
+    grid(64, 1.4, .30, 5);
+    grid(256, 3.0, .85, 14);
+
+    const t = new THREE.CanvasTexture(c);
+    t.anisotropy = 4;
+    return t;
+  }
+
+  // Layered cones, the way the reference stacks its tree
+  function makeTree(h){
+    const g = new THREE.Group();
+    const mat = new THREE.MeshBasicMaterial({ color: GREEN, wireframe: true, transparent:true, opacity:.9 });
+    const tiers = 3;
+    for (let i=0;i<tiers;i++){
+      const f = 1 - i/tiers;
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(h*0.34*f, h*0.52, 8, 2, true), mat);
+      cone.position.y = h*(0.22 + i*0.27);
+      g.add(cone);
+    }
+    const star = new THREE.Mesh(
+      new THREE.SphereGeometry(h*0.055, 8, 6),
+      new THREE.MeshBasicMaterial({ color: 0xE4322B })
+    );
+    star.position.y = h*1.06;
+    g.add(star);
+    return g;
+  }
+
+  const CAR_H = 1.0;                 // the unit everything else is measured in
+
+  let planetGroup = null, globe = null;
+  if (gl3d) {
+    planetGroup = new THREE.Group();
+    scene.add(planetGroup);
+
+    globe = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 96, 64),
+      new THREE.MeshBasicMaterial({ map: surfaceTexture() })
+    );
+    globe.rotation.z = Math.PI / 2;      // poles to the sides, equator underfoot
+    planetGroup.add(globe);
+    planet = planetGroup;
+
+    // trees stand around the band the horizon sweeps through
+    for (let i = 0; i < 18; i++) {
+      const h = 0.5 + Math.random() * 0.45;
+      const t = makeTree(h);
+      const lon = Math.random() * Math.PI * 2;
+      const lat = (Math.random() - 0.5) * 1.15;          // radians off the equator
+      t.userData = { lon: lon, lat: lat, h: h };
+      planetGroup.add(t);
+    }
+
+    // the car rides the north pole; the planet turns underneath it
+    const carMat = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
+    car = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), carMat);
+    scene.add(car);
+    new THREE.TextureLoader().load('../assets/car_back.png', function (tex) {
+      tex.anisotropy = 4;
+      tex.minFilter = THREE.LinearFilter;
+      carMat.map = tex;
+      carMat.needsUpdate = true;
+      car.scale.set(CAR_H * (tex.image.width / tex.image.height), CAR_H, 1);
+    });
+  }
+  let R = 11, camY = 2.7, camZ = 5.0, speed = 0.16, aim = 5.5;
+  let spin = 0, stage = 0, playing = false, playT = 0;
+
+  function layout(){
+    const w = innerWidth, h = innerHeight;
+    if (gl3d) {
+      renderer.setSize(w, h);        // lets three keep the CSS size in step
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+    }
+    seedStars();
+  }
+
+  function frame(now){
+    if (playing){
+      playT += 1/60;
+      setStage(Math.min(6, playT / 2.6), true);
+      if (stage >= 6) playing = false;
+    }
+    if (!gl3d) { requestAnimationFrame(frame); return; }
+
+    // the globe carries the horizon curve; everything standing on it keeps its
+    // own size, so the planet can grow or shrink without the props following
+    globe.scale.setScalar(R);
+    planetGroup.position.set(0, -R, 0);
+    for (let i = 0; i < planetGroup.children.length; i++) {
+      const t = planetGroup.children[i];
+      if (!t.userData || t.userData.lon === undefined) continue;
+      const la = t.userData.lat, lo = t.userData.lon;
+      const n = new THREE.Vector3(
+        Math.cos(la) * Math.sin(lo),
+        Math.sin(la),
+        Math.cos(la) * Math.cos(lo)
+      );
+      t.position.copy(n).multiplyScalar(R);
+      t.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), n);
+    }
+    car.position.set(0, CAR_H * 0.5, 0);
+
+    camera.position.set(0, camY, camZ);
+    // Looking at a point out ahead — not above the car — tips the camera down.
+    // The horizon rises, the car drops into the lower third, and the road the
+    // signposts stand on takes the upper two thirds.
+    camera.lookAt(0, CAR_H * 0.28, -aim);
+
+    spin += speed * 0.016;
+    planetGroup.rotation.x = spin;
+
+    // the key light follows the sun, so the planet's terminator agrees with the sky
+    const p = stage / 6;
+    keyLight.position.set(-6 + p*12, -2 + p*9, 5);
+    keyLight.intensity = 0.35 + p * 0.85;
+    ambient.intensity = 0.28 + p * 0.5;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+
+  // ── dev wiring ──
+  function bind(id, out, fn, fmt){
+    const el = document.getElementById(id), o = document.getElementById(out);
+    function upd(){ fn(parseFloat(el.value)); o.textContent = fmt ? fmt(el.value) : el.value; }
+    el.addEventListener('input', upd); upd();
+  }
+  function setStage(v, quiet){
+    stage = v;
+    paintSky(v);
+    document.getElementById('stagename').textContent =
+      Math.round(v) + ' · ' + SKIES[Math.max(0,Math.min(6,Math.round(v)))].name;
+    if (!quiet) return;
+    const el = document.getElementById('s-stage');
+    el.value = v; document.getElementById('o-stage').textContent = v.toFixed(2);
+  }
+
+  bind('s-stage','o-stage', function(v){ setStage(v); }, function(v){ return (+v).toFixed(2); });
+  bind('s-radius','o-radius', function(v){ R = v; });
+  bind('s-camy','o-camy', function(v){ camY = v; });
+  bind('s-camz','o-camz', function(v){ camZ = v; });
+  bind('s-speed','o-speed', function(v){ speed = v; });
+  bind('s-look','o-look', function(v){ aim = v; });
+  document.getElementById('b-play').onclick = function(){ playT = 0; playing = true; };
+  document.getElementById('b-reset').onclick = function(){ playing = false; setStage(0, true); };
+
+  addEventListener('resize', layout);
+  layout();
+  setStage(0, true);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

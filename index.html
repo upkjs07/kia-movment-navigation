@@ -160,78 +160,85 @@
     }
     #hero {
       position: relative; z-index: 2; flex: 1; min-height: 0;
-      display: flex; flex-direction: column; justify-content: center;
-      gap: clamp(30px, 5vh, 62px);
-      padding: clamp(8px, 2vh, 24px) clamp(20px, 5vw, 80px);
-      max-width: 1180px; width: 100%; box-sizing: border-box; margin: 0 auto;
+      width: 100%; box-sizing: border-box;
+      background: #000;
+      padding: clamp(10px, 2.4vh, 28px) clamp(12px, 3vw, 48px);
     }
-    /* Fades in to the working opacity — a generic 0→1 fade would end at full
-       strength and quietly override it. */
-    @keyframes hero-bg-in { from { opacity: 0; } to { opacity: .17; } }
-    #hero-bg {
-      position: absolute; inset: 0; z-index: 1;
-      pointer-events: none; overflow: hidden;
-      opacity: .17;                 /* held back so it never fights the type */
-      animation: hero-bg-in 1.6s ease .2s both;
-    }
-    #hero-wrap { position: relative; width: 100%; }
-    .hero-line {
-      font-size: clamp(24px, 3.9vw, 56px);
-      font-weight: 700;
-      line-height: 1.32;
-      letter-spacing: -.02em;
-      color: #fff;
-      text-wrap: pretty;
-    }
-    .hero-gap { height: clamp(16px, 2.8vh, 38px); }
-    .hero-tok { display: inline-block; position: relative; white-space: nowrap; }
-    .hero-tok .ch { display: inline-block; text-align: center; white-space: pre; }
-    /* a character still settling reads back as grey */
-    .hero-tok .ch.scrambling { color: #8b9098; }
-    /* Every word starts blocked out. The block wipes off to the right — the
-       intro opens a few by itself, the rest wait to be dragged over. */
-    .hero-tok::after {
-      content: ""; position: absolute;
-      left: -.04em; right: -.04em; top: .05em; bottom: .05em;
-      background: #fff; pointer-events: none;
-      transform-origin: right center;
-      transition: transform .66s cubic-bezier(.22, 1, .36, 1);
-    }
-    /* dragged over — the block is simply gone, no fade */
-    .hero-tok.open::after { opacity: 0; transition: none; }
-    /* opened by the intro — drawn back off to the right */
-    .hero-tok.wipe::after { transform: scaleX(0); }
-    #hero-wrap { touch-action: none; }
-    .hero-tok[data-hidden]:not(.open) { cursor: crosshair; }
 
-    /* each line is drawn on from the left, like a marker stroke */
-    @keyframes hero-line-in {
-      from { clip-path: inset(-30% 100% -30% -8%); }
-      to   { clip-path: inset(-30% -8% -30% -8%); }
+    /* ── scattered label plates ── */
+    #hero-plates { position: absolute; inset: 0; z-index: 2; }
+    /* the falling icons ride above the labels so the ricochet is visible */
+    #hero-flakes { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+    /* JS owns the outer transform (position), CSS owns the inner one (tilt and
+       entry), so dragging and the animation never fight over one property. */
+    .plate {
+      position: absolute; left: 0; top: 0;
+      width: clamp(286px, 38vw, 560px);
+      padding: 0; border: 0; background: none;
+      font-family: 'TWK Everett', Pretendard, 'Noto Sans KR', sans-serif;
+      text-align: left; color: #0A0A0A;
+      cursor: grab; touch-action: none;
+      -webkit-user-select: none; user-select: none;
     }
-    .hero-line {
-      clip-path: inset(-30% 100% -30% -8%);
-      animation: hero-line-in .92s cubic-bezier(.16, 1, .3, 1) forwards;
+    .plate.is-dragging { cursor: grabbing; }
+    @keyframes plate-in {
+      from { opacity: 0; transform: rotate(var(--rot, 0deg)) translateY(14px) scale(.97); }
+      to   { opacity: 1; transform: rotate(var(--rot, 0deg)) translateY(0) scale(1); }
     }
-    #hero-cta { opacity: 0; animation: om-rise 1s cubic-bezier(.16, 1, .3, 1) 2.55s forwards; }
+    /* rests fully drawn, so a stalled animation still leaves a readable plate */
+    .plate-in {
+      display: block;
+      background: var(--face, #F4F2ED);
+      padding: clamp(4px, .6vh, 8px);
+      transform: rotate(var(--rot, 0deg));
+      animation: plate-in .72s cubic-bezier(.16, 1, .3, 1) backwards;
+    }
+    .plate-frame { display: block; border: 2.5px solid #0A0A0A; }
+    .plate-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: clamp(10px, 1.6vw, 22px);
+      padding: clamp(4px, .7vh, 9px) clamp(9px, 1.1vw, 16px);
+      font-weight: 700; letter-spacing: -.005em; line-height: 1.25;
+      font-size: clamp(14px, 1.42vw, 22px);
+    }
+    .plate-top { border-bottom: 2.5px solid #0A0A0A; }
+    /* the title wraps rather than truncating — copy must never be cut off */
+    .plate-title { min-width: 0; }
+    .plate-value, .plate-mid, .plate-right { flex: none; white-space: nowrap; }
+    .plate-ico {
+      flex: none; display: block;
+      width: 1.5em; height: 1.5em;
+      stroke: currentColor; fill: none; stroke-width: 5;
+      stroke-linecap: butt; stroke-linejoin: miter;
+    }
 
-    #hero-cta { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
-    #hero-btn {
-      display: inline-flex; align-items: center; gap: 12px;
-      padding: .58em 1.05em;
-      background: #fff; color: #000; border: 2px solid #fff;
-      font-family: inherit; font-weight: 700; letter-spacing: -.02em;
-      font-size: clamp(15px, 1.6vw, 21px);
-      cursor: pointer;
-      transition: background .2s ease, color .2s ease;
+    /* the one plate to press: the only colour on the screen */
+    .plate.is-cta { --face: #FF2425; width: clamp(300px, 41vw, 604px); }
+    .plate.is-cta:hover { --face: #FF3B3C; }
+    @keyframes cta-pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(255, 36, 37, .5); }
+      70%  { box-shadow: 0 0 0 20px rgba(255, 36, 37, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(255, 36, 37, 0); }
     }
-    #hero-btn::after { content: "→"; display: inline-block; }
-    #hero-btn:hover { background: #000; color: #fff; }
+    .plate.is-cta .plate-frame { animation: cta-pulse 2.6s ease-out 1.2s infinite; }
+    @keyframes go-nudge {
+      0%, 58%, 100% { transform: translateX(0); }
+      29%           { transform: translateX(6px); }
+    }
+    .plate-go { display: inline-block; margin-left: .42em; animation: go-nudge 1.9s ease-in-out infinite; }
+    .plate:focus-visible { outline: 2px solid #F4F2ED; outline-offset: 6px; }
+
     #hero-hint {
-      margin: 0; font-size: clamp(11px, 1.05vw, 13px);
+      position: absolute; left: 0; right: 0; bottom: clamp(10px, 2.2vh, 26px);
+      z-index: 4; margin: 0; text-align: center;
+      font-size: clamp(11px, 1.05vw, 13px);
       letter-spacing: .04em; color: rgba(255,255,255,.42);
+      pointer-events: none;
     }
     @media (hover: none) { #hero-hint { opacity: .8; } }
+    @media (prefers-reduced-motion: reduce) {
+      .plate-in, .plate-go, .plate.is-cta .plate-frame { animation: none; }
+    }
 
     /* ─────────────────────────────────────
        Slide 2 (Q1)
@@ -322,29 +329,7 @@
       padding: clamp(24px, 3.5vw, 48px) clamp(28px, 6vw, 72px);
     }
 
-    /* ── Q5 pendulum swing ── */
-    @keyframes swing {
-      from { transform: rotate(-30deg); }
-      to   { transform: rotate(30deg); }
-    }
-
-    /* ── Q4 fan ── */
-    #fan-wrap {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-    }
-    .fan-line-base, .fan-line-inner {
-      position: absolute;
-      width: min(56vw, 34vh);
-      height: 1.5px;
-      background: rgba(255,255,255,0.9);
-      left: 50%;
-      top: 63%;
-      margin-top: -0.75px;
-      transform-origin: left center;
-      will-change: transform, opacity;
-    }
+    #q4-canvas,#q5-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 
     /* ── Q6 plan character scatter ── */
     #plan-wrap {
@@ -456,6 +441,7 @@
       pointer-events:none;z-index:-1;
     }
     #q1-inner, #q2-inner, #q3-inner{position:relative;z-index:1}
+
     #slide-5 .question, #slide-6 .question, #slide-7 .question,
     #slide-5 .answers,  #slide-6 .answers,  #slide-7 .answers{position:relative;z-index:2}
     #slide-5::after, #slide-6::after, #slide-7::after{
@@ -701,39 +687,10 @@
   <!-- ══════════ INTRO ══════════ -->
   <div class="slide" id="slide-1">
 
-    <!-- the original animated backdrop, kept behind the type -->
-    <div id="hero-bg" aria-hidden="true">
-
-    <div style="position:absolute;left:50%;top:58%;width:120vw;height:70vh;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(159,231,255,.16),rgba(159,231,255,0) 72%);pointer-events:none;animation:om-glowpulse 9s ease-in-out infinite;"></div>
-    <div style="position:absolute;inset:0;pointer-events:none;overflow:hidden;display:flex;flex-direction:column;animation:om-flicker 9s ease-in-out infinite,om-jolt 1.4s steps(4,end) infinite;-webkit-mask-image:radial-gradient(120% 96% at 50% 52%,rgba(0,0,0,.22) 0%,rgba(0,0,0,.55) 44%,#000 100%);mask-image:radial-gradient(120% 96% at 50% 52%,rgba(0,0,0,.22) 0%,rgba(0,0,0,.55) 44%,#000 100%);">
-      <div style="flex:0 0 10%;opacity:.52;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 14px,transparent 14px 52px,#EAF6FF 52px 60px,transparent 60px 118px,#EAF6FF 118px 166px,transparent 166px 196px,#EAF6FF 196px 204px,transparent 204px 262px,#EAF6FF 262px 300px,transparent 300px 320px);animation:om-run320 11s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 6%;opacity:.8;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 8px,transparent 8px 40px,#EAF6FF 40px 72px,transparent 72px 96px,#EAF6FF 96px 104px,transparent 104px 160px,#EAF6FF 160px 196px,transparent 196px 236px,#EAF6FF 236px 244px,transparent 244px 260px);animation:om-run260 7.5s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 9%;opacity:.68;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 40px,transparent 40px 96px,#EAF6FF 96px 104px,transparent 104px 180px,#EAF6FF 180px 232px,transparent 232px 268px,#EAF6FF 268px 276px,transparent 276px 352px,#EAF6FF 352px 400px,transparent 400px 420px);animation:om-run420 8s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 5%;opacity:.74;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 24px,transparent 24px 56px,#EAF6FF 56px 64px,transparent 64px 100px,#EAF6FF 100px 140px,transparent 140px 180px);animation:om-run180 2.9s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 11%;opacity:.8;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 14px,transparent 14px 52px,#EAF6FF 52px 60px,transparent 60px 118px,#EAF6FF 118px 166px,transparent 166px 196px,#EAF6FF 196px 204px,transparent 204px 262px,#EAF6FF 262px 300px,transparent 300px 320px);animation:om-run320 4.4s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 6%;opacity:.7;background-image:repeating-linear-gradient(90deg,#9FE7FF 0 8px,transparent 8px 40px,#9FE7FF 40px 72px,transparent 72px 96px,#9FE7FF 96px 104px,transparent 104px 160px,#9FE7FF 160px 196px,transparent 196px 236px,#9FE7FF 236px 244px,transparent 244px 260px);animation:om-run260 3s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 8%;opacity:.85;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 40px,transparent 40px 96px,#EAF6FF 96px 104px,transparent 104px 180px,#EAF6FF 180px 232px,transparent 232px 268px,#EAF6FF 268px 276px,transparent 276px 352px,#EAF6FF 352px 400px,transparent 400px 420px);animation:om-run420 3.6s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 5%;opacity:1;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 24px,transparent 24px 56px,#EAF6FF 56px 64px,transparent 64px 100px,#EAF6FF 100px 140px,transparent 140px 180px);animation:om-run180 1.5s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 10%;opacity:.94;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 14px,transparent 14px 52px,#EAF6FF 52px 60px,transparent 60px 118px,#EAF6FF 118px 166px,transparent 166px 196px,#EAF6FF 196px 204px,transparent 204px 262px,#EAF6FF 262px 300px,transparent 300px 320px);animation:om-run320 2.3s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 6%;opacity:.97;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 8px,transparent 8px 40px,#EAF6FF 40px 72px,transparent 72px 96px,#EAF6FF 96px 104px,transparent 104px 160px,#EAF6FF 160px 196px,transparent 196px 236px,#EAF6FF 236px 244px,transparent 244px 260px);animation:om-run260 1.5s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 9%;opacity:1;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 40px,transparent 40px 96px,#EAF6FF 96px 104px,transparent 104px 180px,#EAF6FF 180px 232px,transparent 232px 268px,#EAF6FF 268px 276px,transparent 276px 352px,#EAF6FF 352px 400px,transparent 400px 420px);animation:om-run420 1.8s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 5%;opacity:1;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 24px,transparent 24px 56px,#EAF6FF 56px 64px,transparent 64px 100px,#EAF6FF 100px 140px,transparent 140px 180px);animation:om-run180 .75s linear infinite;will-change:background-position;"></div>
-      <div style="flex:0 0 10%;opacity:1;background-image:repeating-linear-gradient(90deg,#EAF6FF 0 14px,transparent 14px 52px,#EAF6FF 52px 60px,transparent 60px 118px,#EAF6FF 118px 166px,transparent 166px 196px,#EAF6FF 196px 204px,transparent 204px 262px,#EAF6FF 262px 300px,transparent 300px 320px);animation:om-run320 1.05s linear infinite;will-change:background-position;"></div>
-      <div style="position:absolute;inset:0;background-image:repeating-linear-gradient(180deg,rgba(7,9,13,.4) 0 2px,rgba(7,9,13,0) 2px 4px);animation:om-raster 2.4s linear infinite;"></div>
-    </div>
-    <div style="position:absolute;inset:-10%;opacity:.05;pointer-events:none;background-image:radial-gradient(rgba(255,255,255,.9) .5px,transparent .6px);background-size:3px 3px;animation:om-drift 14s linear infinite alternate;"></div>
-    </div>
-
     <main id="hero">
-      <div id="hero-wrap">
-        <div id="hero-lines"></div>
-      </div>
-      <div id="hero-cta">
-        <button type="button" id="hero-btn" onclick="goToSlide(2)">
-          <span id="intro-btn-text">1분 시작하기</span>
-        </button>
-        <p id="hero-hint"></p>
-      </div>
+      <div id="hero-plates"></div>
+      <canvas id="hero-flakes" aria-hidden="true"></canvas>
+      <p id="hero-hint"></p>
     </main>
   </div>
 
@@ -799,7 +756,7 @@
 
   <!-- ══════════ Q4 ══════════ -->
   <div class="slide" id="slide-5">
-    <div id="fan-wrap"></div>
+    <div id="recap-wrap" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;"></div>
     <p class="question" id="q4-text">You just bought a new planner.<br>What comes first?</p>
     <div class="answers">
       <button class="answer-btn" onclick="selectAnswer(this, 5)">
@@ -815,14 +772,7 @@
 
   <!-- ══════════ Q5 ══════════ -->
   <div class="slide" id="slide-6">
-    <div id="pendulum-wrap" style="position:absolute;inset:0;pointer-events:none;overflow:hidden;">
-      <span id="p-no" style="position:absolute;font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(48px,9.5vw,110px);color:rgba(255,255,255,0.92);top:50vh;right:calc(50% + 28.87vh + 0.30em);transform:translateY(-50%);white-space:nowrap;line-height:1;letter-spacing:-0.02em;">no</span>
-      <span id="p-here" style="position:absolute;font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(48px,9.5vw,110px);color:rgba(255,255,255,0.92);top:50vh;left:calc(50% + 28.87vh + 0.30em);transform:translateY(-50%);white-space:nowrap;line-height:1;letter-spacing:-0.02em;">here</span>
-      <div id="p-arm" style="position:absolute;left:50%;top:0;width:1.5px;height:57.74vh;background:rgba(255,255,255,0.4);transform-origin:top center;animation:swing 2.8s ease-in-out infinite alternate;will-change:transform;">
-        <span style="position:absolute;bottom:0;left:50%;transform:translate(-50%,50%);font-family:'Nunito',sans-serif;font-weight:900;font-size:clamp(48px,9.5vw,110px);color:rgba(255,255,255,0.95);white-space:nowrap;line-height:1;">w</span>
-      </div>
-      <div style="position:absolute;left:50%;top:0;width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,0.6);transform:translate(-50%,0);"></div>
-    </div>
+    <div id="pendulum-wrap" style="position:absolute;inset:0;overflow:hidden;"></div>
     <p class="question" id="q5-text">You&rsquo;re leaving on a trip<br>tomorrow. How do you pack?</p>
     <div class="answers">
       <button class="answer-btn" onclick="selectAnswer(this, 6)">
@@ -1072,11 +1022,24 @@
     }
   }
 
+  // Slide heights settle late — webfonts land, copy rewraps — so the offset is
+  // taken again rather than trusted from the first measurement.
+  function placeSlides() {
+    const el = document.getElementById('slide-' + currentSlide) ||
+               document.querySelectorAll('.slide')[currentSlide - 1];
+    const y = el ? el.offsetTop : (currentSlide - 1) * innerHeight;
+    slides.style.transform = 'translateY(-' + y + 'px)';
+  }
+  addEventListener('resize', placeSlides);
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(placeSlides, function () {});
+  }
+
   function goToSlide(n) {
     const total = document.querySelectorAll('.slide').length;
     if (n < 1 || n > total) return;
     currentSlide = n;
-    slides.style.transform = 'translateY(-' + ((n - 1) * 100) + 'vh)';
+    placeSlides();
 
     updateNavVisibility();
     syncQ1Cursor();
@@ -1089,193 +1052,237 @@
     if (n === 7) setTimeout(startPlan, 400);
   }
 
-  // ── Hero: drag to uncover, hover to churn ──
-  // Dragging clears the white block over a hidden word. Moving the cursor across
-  // the type churns the two or three characters nearest it, which then settle and
-  // stay settled until the cursor has moved away again.
-  const HERO_COPY = {
+  // ── Hero: a scatter of label plates ──
+  // Four printed labels dropped across the black. Each one can be picked up and
+  // moved; the red one is the button through to question one. A snowflake or a
+  // sparkle drops past every second or so and ricochets off whatever it hits.
+  const HERO_PLATES = {
     kr: [
-      [['MOVEMENT', 0], ['THAT INSPIRES', 1]],
-      ['gap'],
-      [['2027년', 1], ['당신은', 0]],
-      [['어디로', 0], ['움직일까요?', 1]],
-      ['gap'],
-      [['여섯 개의 질문. 1분의 시간.', 1]],
-      [['당신의', 1], ['움직임이', 0], ['닿는 곳을 발견해보세요.', 1]]
+      { ico: 'move',  title: 'MOVEMENT THAT INSPIRES', value: '2027',   mid: 'KIA',    right: 'NAVIGATOR' },
+      { ico: 'pin',   title: '당신은 어디로 움직일까요?',   value: 'Q.06',   mid: '여섯 개의', right: '질문' },
+      { ico: 'clock', title: '새해를 앞둔 마지막 1분',     value: '60 SEC', mid: '연말',    right: 'RECAP' },
+      { ico: 'wheel', title: '1분 시작하기',              value: 'START',  mid: '지금',    right: '출발', cta: true }
     ],
     en: [
-      [['MOVEMENT', 0], ['THAT INSPIRES', 1]],
-      ['gap'],
-      [['Where', 1], ['will you', 0]],
-      [['move', 0], ['in 2027?', 1]],
-      ['gap'],
-      [['Six questions. One minute.', 1]],
-      [['Find out', 1], ['where', 0], ['your movement leads.', 1]]
+      { ico: 'move',  title: 'MOVEMENT THAT INSPIRES', value: '2027',   mid: 'KIA',      right: 'NAVIGATOR' },
+      { ico: 'pin',   title: 'WHERE WILL YOU MOVE?',   value: 'Q.06',   mid: 'SIX',      right: 'QUESTIONS' },
+      { ico: 'clock', title: 'THE LAST MINUTE',       value: '60 SEC', mid: 'YEAR-END', right: 'RECAP' },
+      { ico: 'wheel', title: 'START THE MINUTE',      value: 'START',  mid: 'RIGHT',    right: 'NOW', cta: true }
     ]
   };
-
   const HERO_HINT = {
-    kr: '드래그해서 가려진 문장을 열어보세요',
-    en: 'Drag across the blocks to uncover the words'
+    kr: '라벨을 드래그해서 옮겨보세요',
+    en: 'Drag the labels around'
   };
 
   (function () {
-    const wrap = document.getElementById('hero-wrap');
-    const lines = document.getElementById('hero-lines');
-    if (!wrap || !lines) return;
+    const host = document.getElementById('hero-plates');
+    if (!host) return;
 
-    // brik: scramble speed 3, scramble length 7
-    const SCRAMBLE_SPEED = 7;    // animation frames between glyph changes
-    const SCRAMBLE_LENGTH = 7;   // glyph changes before the character under the cursor locks
-    const NEIGHBOUR_LENGTH = 3;  // the characters either side only flicker
-    const NEAR = 0.7;            // within this many character widths counts as "under the cursor"
-    const REACH = 1.9;           // beyond this, nothing reacts
+    const ICONS = {
+      move:  '<circle cx="32" cy="32" r="23"/><path d="M21 43 43 21M43 21H31M43 21V33"/>',
+      pin:   '<path d="M32 57s17-17.5 17-30.5a17 17 0 1 0-34 0C15 39.5 32 57 32 57Z"/><circle cx="32" cy="26" r="6.5"/>',
+      clock: '<circle cx="32" cy="32" r="23"/><path d="M32 17v15l11 7"/>',
+      wheel: '<circle cx="32" cy="32" r="23"/><circle cx="32" cy="32" r="8"/><path d="M32 24V9M25.1 36 12.1 43.5M38.9 36 51.9 43.5"/>'
+    };
+    // where each label lands, as a share of the room left over once the plate
+    // is accounted for — so nothing can fall outside the hero at any width
+    const SPOT = [
+      { x: 0.10, y: 0.07, face: '#F4F2ED' },
+      { x: 0.92, y: 0.30, face: '#FFFFFF' },
+      { x: 0.05, y: 0.57, face: '#E8E6E0' },
+      { x: 0.66, y: 0.84 }
+    ];
+    const TAP = 6;          // px of travel still counted as a click, not a drag
 
-    const POOL = '!<>-_\\/[]{}=+*^?#%&@$0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let plates = [], topZ = 10, drag = null;
 
-    let dragging = false;
-    let cells = [];              // cached character boxes, so pointermove stays cheap
-
-    // Every character churns through the same Latin/symbol/digit pool. Widths are
-    // pinned per character, so a narrow stand-in simply sits centred in the slot
-    // and nothing on the line shifts.
-    function randomGlyph() {
-      return POOL.charAt(Math.floor(Math.random() * POOL.length));
+    function apply(p) {
+      p.el.style.transform = 'translate(' + Math.round(p.x) + 'px,' + Math.round(p.y) + 'px)';
     }
-
-    function churn(el, steps) {
-      const ch = el.dataset.ch;
-      if (!ch || ch === ' ' || el.dataset.busy) return;
-      // Already settled at this strength or better — leave it alone. A character
-      // that only flickered as a neighbour can still take a full pass later.
-      if (el.dataset.settled && +el.dataset.settled >= steps) return;
-      el.dataset.busy = '1';
-      el.classList.add('scrambling');
-
-      let frame = 0, step = 0;
-      function tick() {
-        if (frame % SCRAMBLE_SPEED === 0) {
-          if (step >= steps) {
-            el.textContent = ch;
-            el.classList.remove('scrambling');
-            delete el.dataset.busy;
-            el.dataset.settled = String(steps);
-            return;
-          }
-          el.textContent = randomGlyph();
-          step++;
-        }
-        frame++;
-        requestAnimationFrame(tick);
+    function bounds(p) {
+      return { w: Math.max(0, host.clientWidth - p.el.offsetWidth),
+               h: Math.max(0, host.clientHeight - p.el.offsetHeight) };
+    }
+    function place() {
+      for (let i = 0; i < plates.length; i++) {
+        const p = plates[i], b = bounds(p);
+        if (p.moved) { p.x = Math.min(p.x, b.w); p.y = Math.min(p.y, b.h); }
+        else { p.x = p.spot.x * b.w; p.y = p.spot.y * b.h; }
+        apply(p);
       }
-      requestAnimationFrame(tick);
     }
 
-    function renderLines() {
-      const copy = HERO_COPY[currentLang] || HERO_COPY.kr;
-      lines.innerHTML = '';
-      copy.forEach(function (row) {
-        if (row[0] === 'gap') {
-          const g = document.createElement('div');
-          g.className = 'hero-gap';
-          lines.appendChild(g);
-          return;
+    function build() {
+      const rows = HERO_PLATES[currentLang] || HERO_PLATES.kr;
+      host.textContent = '';
+      plates = [];
+      rows.forEach(function (row, i) {
+        const spot = SPOT[i] || SPOT[0];
+        const el = document.createElement(row.cta ? 'button' : 'div');
+        if (row.cta) el.type = 'button';
+        el.className = 'plate' + (row.cta ? ' is-cta' : '');
+        if (spot.face) el.style.setProperty('--face', spot.face);
+        el.innerHTML =
+          '<span class="plate-in" style="animation-delay:' + (0.18 + i * 0.13).toFixed(2) + 's">' +
+            '<span class="plate-frame">' +
+              '<span class="plate-row plate-top">' +
+                '<span class="plate-title"' + (row.cta ? ' id="intro-btn-text"' : '') + '></span>' +
+                '<span class="plate-value"></span>' +
+              '</span>' +
+              '<span class="plate-row plate-bot">' +
+                '<svg class="plate-ico" viewBox="0 0 64 64" aria-hidden="true">' + ICONS[row.ico] + '</svg>' +
+                '<span class="plate-mid"></span><span class="plate-right"></span>' +
+              '</span>' +
+            '</span>' +
+          '</span>';
+        el.querySelector('.plate-title').textContent = row.title;
+        el.querySelector('.plate-value').textContent = row.value;
+        el.querySelector('.plate-mid').textContent = row.mid;
+        el.querySelector('.plate-right').textContent = row.right;
+        if (row.cta) {
+          const go = document.createElement('span');
+          go.className = 'plate-go';
+          go.textContent = '→';
+          el.querySelector('.plate-value').appendChild(go);
         }
-        const d = document.createElement('div');
-        d.className = 'hero-line';
-        row.forEach(function (tok, i) {
-          if (i) d.appendChild(document.createTextNode(' '));
-          const sp = document.createElement('span');
-          sp.className = 'hero-tok';
-          if (tok[1]) sp.dataset.hidden = '1';
-          const str = tok[0];
-          for (let k = 0; k < str.length; k++) {
-            const c = document.createElement('span');
-            c.className = 'ch';
-            c.dataset.ch = str.charAt(k);
-            c.textContent = str.charAt(k);
-            sp.appendChild(c);
-          }
-          d.appendChild(sp);
-        });
-        lines.appendChild(d);
+        host.appendChild(el);
+        plates.push({ el: el, spot: spot, x: 0, y: 0, moved: false, cta: !!row.cta });
       });
+      place();
       const hint = document.getElementById('hero-hint');
       if (hint) hint.textContent = HERO_HINT[currentLang] || HERO_HINT.kr;
-      intro();
-      requestAnimationFrame(measure);
     }
 
-    // Pin each character's width and remember where it sits. Pinning matters:
-    // a stand-in glyph is rarely the width of the character it replaces, and
-    // without it the line — and the block sitting on it — would shuffle.
-    function measure() {
-      cells = [];
-      const list = lines.querySelectorAll('.ch');
-      for (let i = 0; i < list.length; i++) {
-        const el = list[i];
-        if (el.dataset.ch === ' ') continue;
-        el.style.width = '';
-        const r = el.getBoundingClientRect();
-        if (!r.width) continue;
-        el.style.width = r.width + 'px';
-        cells.push({ el: el, cx: r.left + r.width / 2, cy: r.top + r.height / 2, w: r.width, h: r.height });
+    host.addEventListener('pointerdown', function (e) {
+      const el = e.target.closest ? e.target.closest('.plate') : null;
+      if (!el) return;
+      const p = plates.filter(function (q) { return q.el === el; })[0];
+      if (!p) return;
+      drag = { p: p, px: e.clientX, py: e.clientY, ox: e.clientX - p.x, oy: e.clientY - p.y, far: 0 };
+      el.style.zIndex = ++topZ;
+      el.classList.add('is-dragging');
+      el.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    host.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      const p = drag.p, b = bounds(p);
+      p.x = Math.max(0, Math.min(b.w, e.clientX - drag.ox));
+      p.y = Math.max(0, Math.min(b.h, e.clientY - drag.oy));
+      p.moved = true;
+      drag.far = Math.max(drag.far, Math.abs(e.clientX - drag.px) + Math.abs(e.clientY - drag.py));
+      apply(p);
+    });
+    function release() {
+      if (!drag) return;
+      drag.p.el.classList.remove('is-dragging');
+      // a plate that was actually carried must not also count as a click
+      drag.p.dragged = drag.far > TAP;
+      drag = null;
+    }
+    host.addEventListener('pointerup', release);
+    host.addEventListener('pointercancel', release);
+
+    host.addEventListener('click', function (e) {
+      const el = e.target.closest ? e.target.closest('.plate') : null;
+      if (!el) return;
+      const p = plates.filter(function (q) { return q.el === el; })[0];
+      if (!p) return;
+      if (p.dragged) { p.dragged = false; return; }
+      if (p.cta) goToSlide(2);
+    });
+
+    addEventListener('resize', place);
+    window.renderHero = build;
+    build();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(place, function () {});
+
+    // ── the odd flake or sparkle, falling fast and bouncing off the labels ──
+    const canvas = document.getElementById('hero-flakes');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const FLAKE = new Path2D('M402.8 169.2H279.1L366.6 81.7L321.1 36.2L233.6 123.7V0H169.2V123.7L81.7 36.2L36.2 81.7L123.7 169.2H0V233.6H123.7L36.2 321.1L81.7 366.6L169.2 279.1V402.8H233.6V279.1L321.1 366.6L366.6 321.1L279.1 233.6H402.8V169.2Z');
+    const SPARK = new Path2D('M100 0C100 55 55 100 0 100C55 100 100 145 100 200C100 145 145 100 200 100C145 100 100 55 100 0Z');
+    const MAX = 3, G = 940, BOUNCE = 0.58;
+    let W = 0, H = 0, bits = [], nextAt = 0, last = null;
+
+    function fit() {
+      W = host.clientWidth; H = host.clientHeight;
+      const dpr = Math.min(devicePixelRatio || 1, 2);
+      canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    function drop() {
+      const size = 16 + Math.random() * 16;
+      return { x: 40 + Math.random() * Math.max(1, W - 80), y: -size,
+               vx: (Math.random() - 0.5) * 90, vy: 240 + Math.random() * 180,
+               r: size / 2, size: size, rot: Math.random() * 6.28,
+               vr: (Math.random() - 0.5) * 5, kind: Math.random() < 0.5 ? 1 : 0 };
+    }
+    // the labels move, so their boxes are read fresh each frame — only four of them
+    function boxes() {
+      const out = [];
+      for (let i = 0; i < plates.length; i++) {
+        const el = plates[i].el;
+        out.push({ l: plates[i].x, t: plates[i].y,
+                   r: plates[i].x + el.offsetWidth, b: plates[i].y + el.offsetHeight });
       }
+      return out;
     }
-
-    lines.addEventListener('pointermove', function (e) {
-      const x = e.clientX, y = e.clientY;
-      for (let i = 0; i < cells.length; i++) {
-        const c = cells[i];
-        const dx = Math.abs(x - c.cx), dy = Math.abs(y - c.cy);
-        if (dy <= c.h * 0.6 && dx <= c.w * REACH) {
-          churn(c.el, dx <= c.w * NEAR ? SCRAMBLE_LENGTH : NEIGHBOUR_LENGTH);
-        } else if (dx > c.w * 3 || dy > c.h * 1.3) {
-          delete c.el.dataset.settled;   // far enough away to arm again
+    function tick(dt) {
+      const box = boxes();
+      for (let i = bits.length - 1; i >= 0; i--) {
+        const f = bits[i];
+        f.vy += G * dt;
+        f.x += f.vx * dt; f.y += f.vy * dt; f.rot += f.vr * dt;
+        for (let k = 0; k < box.length; k++) {
+          const q = box[k];
+          if (f.x + f.r < q.l || f.x - f.r > q.r || f.y + f.r < q.t || f.y - f.r > q.b) continue;
+          // push out along whichever side it is closest to escaping
+          const dl = f.x + f.r - q.l, dr = q.r - (f.x - f.r);
+          const dt_ = f.y + f.r - q.t, db = q.b - (f.y - f.r);
+          const m = Math.min(dl, dr, dt_, db);
+          if (m === dt_ && f.vy > 0)      { f.y = q.t - f.r; f.vy = -f.vy * BOUNCE; f.vx += (Math.random() - 0.5) * 120; }
+          else if (m === db && f.vy < 0)  { f.y = q.b + f.r; f.vy = -f.vy * BOUNCE; }
+          else if (m === dl)              { f.x = q.l - f.r; f.vx = -Math.abs(f.vx) - 40; }
+          else                            { f.x = q.r + f.r; f.vx = Math.abs(f.vx) + 40; }
+          f.vr += (Math.random() - 0.5) * 9;
         }
+        if (f.y - f.r > H + 40 || f.x < -80 || f.x > W + 80) bits.splice(i, 1);
       }
-    });
-
-    function uncoverAt(x, y) {
-      const el = document.elementFromPoint(x, y);
-      if (!el || !el.closest) return;
-      const tok = el.closest('.hero-tok[data-hidden]');
-      if (tok) tok.classList.add('open');
     }
-
-    wrap.addEventListener('pointerdown', function (e) {
-      dragging = true;
-      uncoverAt(e.clientX, e.clientY);
-    });
-    wrap.addEventListener('pointermove', function (e) {
-      if (dragging) uncoverAt(e.clientX, e.clientY);
-    });
-    function endDrag() { dragging = false; }
-    window.addEventListener('pointerup', endDrag);
-    window.addEventListener('pointercancel', endDrag);
-
-    window.addEventListener('resize', measure);
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(measure, function () {});
+    function paint() {
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#FFFFFF';
+      for (let i = 0; i < bits.length; i++) {
+        const f = bits[i];
+        ctx.save();
+        ctx.translate(f.x, f.y); ctx.rotate(f.rot);
+        const s = f.size / (f.kind ? 200 : 403);
+        ctx.scale(s, s);
+        ctx.translate(f.kind ? -100 : -201.4, f.kind ? -100 : -201.4);
+        ctx.fill(f.kind ? SPARK : FLAKE);
+        ctx.restore();
+      }
     }
-
-    // Lines are struck on one after another; once they have landed, the words
-    // that start open shed their blocks in turn — showing what the cursor does
-    // before anyone tries it.
-    function intro() {
-      const rows = lines.querySelectorAll('.hero-line');
-      rows.forEach(function (row, i) {
-        row.style.animationDelay = (0.25 + i * 0.15) + 's';
-      });
-      const lastLand = 250 + (rows.length - 1) * 150 + 920;
-      const free = lines.querySelectorAll('.hero-tok:not([data-hidden])');
-      free.forEach(function (tok, i) {
-        setTimeout(function () { tok.classList.add('wipe'); }, lastLand + 150 + i * 170);
-      });
+    function frame(ts) {
+      const now = ts || performance.now();
+      if (last === null) last = now;
+      let dt = (now - last) / 1000;
+      last = now;
+      if (!(dt > 0)) dt = 0; else if (dt > 0.05) dt = 0.05;
+      if (now > nextAt && bits.length < MAX) {
+        bits.push(drop());
+        nextAt = now + 700 + Math.random() * 1300;
+      }
+      tick(dt); paint();
+      requestAnimationFrame(frame);
     }
-
-    window.renderHero = renderLines;
-    renderLines();
+    addEventListener('resize', fit);
+    fit();
+    requestAnimationFrame(frame);
   })();
 
   // ── Steering-wheel cursor ──
@@ -2332,135 +2339,598 @@
   }
 
   // ── Q5 Pendulum ──
-  function startPendulum() {}
-
+  // ── Q5: a clock stirring what you would take with you ──
+  // The hands sweep; the labels drift weightlessly with a little turbulence and
+  // are knocked aside when a hand catches them, or when they run into each other.
+  // ── Q4: stamping the day full of alarms ──
+  // Every tap presses an alarm row onto the page at that spot, an hour later
+  // than the last — the planner filling up under your hand.
   let fanStarted = false;
   let fanAnimId  = null;
+
+  const STAMP_MAX = 60;
+
+  // what the alarm is actually for — drawn where the label used to read "Alarm"
+  const STAMP_TODOS = [
+    '운동하기','공부하기','책 읽기','스트레칭','일기 쓰기','도시락 싸기',
+    '5km 달리기','명상하기','책상 정리','한 주 계획 세우기','아침 산책','폰 안 보기',
+    '안부 전화하기','한 줄 쓰기','외국어 공부','화분에 물 주기','11시에 자기','바람 쐬기'
+  ];
 
   function startFan() {
     if (fanStarted) return;
     fanStarted = true;
 
-    const wrap = document.getElementById('fan-wrap');
+    const wrap = document.getElementById('recap-wrap');
+    if (!wrap) return;
     wrap.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    canvas.id = 'q4-canvas';
+    wrap.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
 
-    const leftLine = document.createElement('div');
-    leftLine.className = 'fan-line-base';
-    wrap.appendChild(leftLine);
-
-    const rightLine = document.createElement('div');
-    rightLine.className = 'fan-line-base';
-    wrap.appendChild(rightLine);
-
-    const IRREGULAR_ANGLES = [-165, -142, -118, -92, -65, -42, -22, -8];
-    const NUM_INNER = IRREGULAR_ANGLES.length;
-    const innerLines = [];
-
-    for (let i = 0; i < NUM_INNER; i++) {
-      const el = document.createElement('div');
-      el.className = 'fan-line-inner';
-      wrap.appendChild(el);
-      innerLines.push(el);
+    let W = 0, H = 0, dpr = 1, cw = 0, ch = 0, last = null;
+    let stamps = [], hour = 0;              // next hour to be pressed, 0..23
+    let userTapped = false;
+    // drawn from a bag rather than at random, so the same task does not land twice over
+    let bag = [];
+    function nextTodo() {
+      if (!bag.length) {
+        bag = STAMP_TODOS.slice();
+        for (let i = bag.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          const t = bag[i]; bag[i] = bag[j]; bag[j] = t;
+        }
+      }
+      return bag.pop();
     }
 
-    const startTime = performance.now();
-    const T_OPEN  = 1200;
-    const T_FLOW  = 2600;
-    const T_CLOSE = 1400;
-    const T_PAUSE = 500;
-    const CYCLE_TOTAL = T_OPEN + T_FLOW + T_CLOSE + T_PAUSE;
+    function sizeUp() {
+      const slide = document.getElementById('slide-5');
+      W = (slide && slide.offsetWidth) || window.innerWidth || 360;
+      H = (slide && slide.offsetHeight) || window.innerHeight || 600;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cw = Math.max(210, Math.min(W * 0.58, 330));
+      ch = cw * 0.30;
+    }
 
-    function animateFan(now) {
-      const elapsed = now - startTime;
-      const cycleTime = elapsed % CYCLE_TOTAL;
+    function label(h) {
+      const ampm = h < 12 ? 'AM' : 'PM';
+      let t = h % 12; if (t === 0) t = 12;
+      return { t: t + ':00', ampm: ampm };
+    }
 
-      if (cycleTime < T_OPEN) {
-        const p = cycleTime / T_OPEN;
-        const ease = 1 - Math.pow(1 - p, 3);
+    function stamp(x, y) {
+      const h = hour;
+      hour = (hour + 1) % 24;
+      stamps.push({
+        x: x, y: y,
+        rot: 0,
+        h: h,
+        todo: nextTodo(),
+        on: true,
+        born: performance.now()
+      });
+      if (stamps.length > STAMP_MAX) stamps.shift();
+    }
 
-        leftLine.style.transform = 'rotate(-180deg)';
-        leftLine.style.opacity = (ease * 0.9).toFixed(2);
+    function drawCard(s, now) {
+      // rAF reports the frame's start, which can precede the moment the stamp
+      // was made — without the floor the scale runs away
+      const k = Math.max(0, Math.min(1, (now - s.born) / 260));
+      const ease = 1 - Math.pow(1 - k, 3);
+      const sc = 1.22 - 0.22 * ease;          // pressed down, then settles
+      const al = Math.min(1, k * 2.2);
 
-        const rightAngle = -180 + 180 * ease;
-        rightLine.style.transform = 'rotate(' + rightAngle.toFixed(2) + 'deg)';
-        rightLine.style.opacity = (ease * 0.9).toFixed(2);
+      ctx.save();
+      ctx.globalAlpha = al;
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.rot);
+      ctx.scale(sc, sc);
+      ctx.translate(-cw / 2, -ch / 2);
 
-        for (let i = 0; i < NUM_INNER; i++) {
-          const targetAngle = IRREGULAR_ANGLES[i];
-          const lineDelay = (i + 1) * 0.05;
-          const lineP = Math.max(0, Math.min(1, (p - lineDelay) / (1 - lineDelay)));
-          const lineEase = 1 - Math.pow(1 - lineP, 3);
-          const curAngle = -180 + (targetAngle - (-180)) * lineEase;
-          const alpha = lineEase * Math.sin((-curAngle / 180) * Math.PI) * 0.9;
-          innerLines[i].style.transform = 'rotate(' + curAngle.toFixed(2) + 'deg)';
-          innerLines[i].style.opacity = Math.max(0, alpha).toFixed(2);
-        }
+      // the card takes the page's own black — only the hairline separates them
+      ctx.fillStyle = '#0A0A0A';
+      ctx.strokeStyle = 'rgba(244,242,237,.20)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, cw, ch, Math.min(10, ch * 0.16));
+      ctx.fill();
+      ctx.stroke();
 
-      } else if (cycleTime < T_OPEN + T_FLOW) {
-        leftLine.style.transform = 'rotate(-180deg)';
-        leftLine.style.opacity = '0.9';
-        rightLine.style.transform = 'rotate(0deg)';
-        rightLine.style.opacity = '0.9';
+      const L = label(s.h);
+      const big = ch * 0.44;
 
-        const flowElapsed = cycleTime - T_OPEN;
-        const SPEED = 0.035;
+      ctx.textBaseline = 'alphabetic';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = s.on ? '#F4F2ED' : 'rgba(244,242,237,.55)';
+      ctx.font = '300 ' + big + 'px Pretendard, sans-serif';
+      const tw = ctx.measureText(L.t).width;
+      ctx.fillText(L.t, cw * 0.075, ch * 0.56);
 
-        for (let i = 0; i < NUM_INNER; i++) {
-          let angle = IRREGULAR_ANGLES[i] + flowElapsed * SPEED;
-          let norm = ((angle + 180) % 180);
-          if (norm < 0) norm += 180;
-          let curAngle = -180 + norm;
-          let alpha = Math.sin((-curAngle / 180) * Math.PI) * 0.9;
-          innerLines[i].style.transform = 'rotate(' + curAngle.toFixed(2) + 'deg)';
-          innerLines[i].style.opacity = Math.max(0, alpha).toFixed(2);
-        }
+      ctx.font = '600 ' + (big * 0.42) + 'px Pretendard, sans-serif';
+      ctx.fillText(L.ampm, cw * 0.075 + tw + big * 0.08, ch * 0.56);
 
-      } else if (cycleTime < T_OPEN + T_FLOW + T_CLOSE) {
-        const closeElapsed = cycleTime - (T_OPEN + T_FLOW);
-        const p = closeElapsed / T_CLOSE;
-        const ease = Math.pow(p, 2.2);
+      ctx.font = '400 ' + (big * 0.30) + 'px Pretendard, sans-serif';
+      ctx.fillStyle = 'rgba(244,242,237,.45)';
+      ctx.fillText(s.todo, cw * 0.075, ch * 0.80);
 
-        const coverAngle = -180 + 180 * ease;
-        leftLine.style.transform = 'rotate(' + coverAngle.toFixed(2) + 'deg)';
-        leftLine.style.opacity = '0.9';
-        rightLine.style.transform = 'rotate(0deg)';
-        rightLine.style.opacity = '0.9';
+      // the switch
+      const sw = cw * 0.155, sh = sw * 0.58;
+      const sx = cw - sw - cw * 0.075, sy = (ch - sh) / 2;
+      ctx.fillStyle = s.on ? '#24EF22' : 'rgba(244,242,237,.20)';
+      ctx.beginPath();
+      ctx.roundRect(sx, sy, sw, sh, sh / 2);
+      ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(sx + (s.on ? sw - sh / 2 : sh / 2), sy + sh / 2, sh / 2 - sh * 0.09, 0, 6.283);
+      ctx.fill();
 
-        const SPEED = 0.035;
-        const flowAtCloseStart = T_FLOW;
+      ctx.restore();
+    }
 
-        for (let i = 0; i < NUM_INNER; i++) {
-          let angle = IRREGULAR_ANGLES[i] + (flowAtCloseStart + closeElapsed * 0.5) * SPEED;
-          let norm = ((angle + 180) % 180);
-          if (norm < 0) norm += 180;
-          let curAngle = -180 + norm;
+    function draw(now) {
+      ctx.clearRect(0, 0, W, H);
+      for (let i = 0; i < stamps.length; i++) drawCard(stamps[i], now);
 
-          if (curAngle < coverAngle) {
-            innerLines[i].style.opacity = '0';
-          } else {
-            let alpha = Math.sin((-curAngle / 180) * Math.PI) * 0.9 * (1 - ease);
-            innerLines[i].style.transform = 'rotate(' + curAngle.toFixed(2) + 'deg)';
-            innerLines[i].style.opacity = Math.max(0, alpha).toFixed(2);
+      if (!userTapped) {
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '600 ' + Math.max(11, Math.min(W * 0.016, 14)) + 'px Pretendard, sans-serif';
+        ctx.fillStyle = 'rgba(244,242,237,.34)';
+        ctx.letterSpacing = '0.14em';
+        ctx.fillText('탭해서 하루를 채워보세요', W / 2, H * 0.70);
+        ctx.restore();
+        ctx.letterSpacing = '0px';
+      }
+    }
+
+    function frame(ts) {
+      const now = ts || performance.now();
+      if (last === null) last = now;
+      last = now;
+      draw(now);
+      fanAnimId = requestAnimationFrame(frame);
+    }
+
+    canvas.style.pointerEvents = 'auto';
+    canvas.style.touchAction = 'none';
+    canvas.style.cursor = 'crosshair';
+    canvas.addEventListener('pointerdown', function (e) {
+      const r = canvas.getBoundingClientRect();
+      userTapped = true;
+      stamp(e.clientX - r.left, e.clientY - r.top);
+      e.preventDefault();
+    });
+
+    // A short cascade on arrival — an empty page reads as broken. They stack
+    // almost edge to edge and step right, the way the reference stacks them.
+    function intro() {
+      const x0 = W * 0.42, y0 = H * 0.26;
+      const dy = ch * 0.30, dx = cw * 0.07;   // 70% of each card stays covered
+      for (let i = 0; i < 5; i++) {
+        (function (i) {
+          setTimeout(function () {
+            if (userTapped) return;
+            stamp(x0 + dx * i * (1 + i * 0.12), y0 + dy * i);
+          }, 420 + i * 200);
+        })(i);
+      }
+    }
+
+    window.addEventListener('resize', function () { sizeUp(); });
+    sizeUp();
+    intro();
+    fanAnimId = requestAnimationFrame(frame);
+
+    window.__stamp = stamp;                  // for checking without a pointer
+  }
+
+  let clockStarted = false;
+  let clockAnimId  = null;
+
+  const Q5_WORDS = {
+    kr: ['TOMORROW','TRIP','BAG','TICKET','SEA','MAP','GO'],
+    en: ['TOMORROW','TRIP','BAG','TICKET','SEA','MAP','GO']
+  };
+  // seasonal shapes, drawn from path data so they stay crisp at any size
+  const Q5_ICONS = [
+    { d:'M295.2 259.2C311 250 325.9 238.7 339.5 225.1L275.8 161.4C290.7 153.2 304.8 142.8 317.5 130.1L187.2 0L57 130.2C69.7 142.9 83.7 153.3 98.7 161.5L35 225.2C48.5 238.7 63.4 250.1 79.3 259.3L0 338.6C103.4 442 271.1 442 374.5 338.6L295.2 259.2Z',
+      w:375, h:417, col:'#24EF22', k:1 },
+    { d:'M402.8 169.2H279.1L366.6 81.7L321.1 36.2L233.6 123.7V0H169.2V123.7L81.7 36.2L36.2 81.7L123.7 169.2H0V233.6H123.7L36.2 321.1L81.7 366.6L169.2 279.1V402.8H233.6V279.1L321.1 366.6L366.6 321.1L279.1 233.6H402.8V169.2Z',
+      w:403, h:403, col:'#FFFFFF', k:0.85 }
+  ];
+  const Q5_ICON_PLAN = [0, 1, 1, 0];      // two trees, two flakes
+
+  // flat, saturated, on black — and a chip is either a box or a stadium
+  const Q5_CHIPS = [
+    { bg:'#FF2425', fg:'#0A0A0A', pill:false },
+    { bg:'#24EF22', fg:'#0A0A0A', pill:false },
+    { bg:'#7A7A7A', fg:'#FFFFFF', pill:true  },
+    { bg:'#F2E63B', fg:'#0A0A0A', pill:false },
+    { bg:'#F4F2ED', fg:'#0A0A0A', pill:true  },
+    { bg:'#2E2E2E', fg:'#F4F2ED', pill:false }
+  ];
+
+  function startPendulum() {
+    if (clockStarted) return;
+    clockStarted = true;
+
+    const wrap = document.getElementById('pendulum-wrap');
+    if (!wrap) return;
+    wrap.innerHTML = '';
+    const canvas = document.createElement('canvas');
+    canvas.id = 'q5-canvas';
+    wrap.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+
+    let W = 0, H = 0, dpr = 1, cx = 0, cy = 0, dial = 0;
+    let items = [], lang = null, last = null;
+    let minA = -Math.PI / 2, hourA = -Math.PI / 2;
+    let settleT = 0;                       // seconds since the labels were dropped
+    const SETTLE = 2.4;                    // how long gravity keeps hold
+    let drag = null;                       // the label under the finger, if any
+    let solids = [];                       // the copy blocks, as things to bounce off
+
+    const MIN_TURN = 7000;                 // ms for the long hand to come round
+    const HOUR_TURN = MIN_TURN * 11;
+
+    function sizeUp() {
+      const slide = document.getElementById('slide-6');
+      W = (slide && slide.offsetWidth) || window.innerWidth || 360;
+      H = (slide && slide.offsetHeight) || window.innerHeight || 600;
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      cx = W / 2;
+      cy = H * 0.42;                        // above the question, which sits low
+      measureSolids();
+      // minute hand comes to just under half the short side of the viewport
+      dial = Math.min(W, H) * 0.47;
+    }
+
+    // The copy sits in front of the canvas; these are its boxes in canvas space,
+    // so a label can knock against the question and the answers.
+    function measureSolids() {
+      solids = [];
+      const base = canvas.getBoundingClientRect();
+      const slide = document.getElementById('slide-6');
+      if (!slide) return;
+      slide.querySelectorAll('.question, .answers').forEach(function (el) {
+        const r = el.getBoundingClientRect();
+        if (!r.width || !r.height) return;
+        const pad = 6;
+        solids.push({
+          x1: r.left - base.left - pad, y1: r.top - base.top - pad,
+          x2: r.right - base.left + pad, y2: r.bottom - base.top + pad
+        });
+      });
+    }
+
+    function boxHit(it, b) {
+      const nx = Math.max(b.x1, Math.min(it.x, b.x2));
+      const ny = Math.max(b.y1, Math.min(it.y, b.y2));
+      let dx = it.x - nx, dy = it.y - ny;
+      let d = Math.hypot(dx, dy);
+
+      if (d > it.r) return;
+
+      if (d < 0.0001) {
+        // centre is inside the box — leave by the nearest wall
+        const left = it.x - b.x1, right = b.x2 - it.x;
+        const up = it.y - b.y1, down = b.y2 - it.y;
+        const m = Math.min(left, right, up, down);
+        if (m === left)       { it.x = b.x1 - it.r; it.vx = -Math.abs(it.vx) - 40; }
+        else if (m === right) { it.x = b.x2 + it.r; it.vx =  Math.abs(it.vx) + 40; }
+        else if (m === up)    { it.y = b.y1 - it.r; it.vy = -Math.abs(it.vy) - 40; }
+        else                  { it.y = b.y2 + it.r; it.vy =  Math.abs(it.vy) + 40; }
+        return;
+      }
+      dx /= d; dy /= d;
+      it.x = nx + dx * it.r;
+      it.y = ny + dy * it.r;
+      const along = it.vx * dx + it.vy * dy;
+      if (along < 0) {                       // only when heading into the box
+        it.vx -= dx * along * 1.5;
+        it.vy -= dy * along * 1.5;
+        it.vr += (Math.random() - 0.5) * 0.25;
+      }
+    }
+
+    function build() {
+      lang = currentLang;
+      settleT = 0;
+      const list = Q5_WORDS[lang] || Q5_WORDS.kr;
+      const fs = Math.max(34, Math.min(W * 0.085, 66));
+      ctx.font = '700 ' + fs + 'px Pretendard, sans-serif';
+      items = list.map(function (t, i) {
+        const tw = ctx.measureText(t).width;
+        const padX = fs * 0.52, padY = fs * 0.34;
+        const bw = tw + padX * 2, bh = fs + padY * 2;
+        const chip = Q5_CHIPS[i % Q5_CHIPS.length];
+        const w = bw;
+        // sit them on a loose ring so nothing starts inside the hands
+        return {
+          t: t, fs: fs, bw: bw, bh: bh, chip: chip,
+          r: Math.max(bh * 0.60, bw * 0.34),
+          // stacked above the frame, staggered, so they arrive in a shower
+          x: W * (0.14 + 0.72 * ((i + 0.5) / list.length)) + (Math.random() - 0.5) * W * 0.10,
+          y: -bh * 1.4 - i * (H * 0.28) - Math.random() * 120,
+          vx: (Math.random() - 0.5) * 30,
+          vy: 0,
+          rot: (Math.random() - 0.5) * 0.5,
+          vr: (Math.random() - 0.5) * 0.25
+        };
+      });
+
+      // and the seasonal shapes, on the same footing as the labels
+      const n = items.length;
+      Q5_ICON_PLAN.forEach(function (k, j) {
+        const ic = Q5_ICONS[k];
+        const size = fs * 2.1 * (ic.k || 1);         // a touch taller than a chip
+        const sc = size / ic.h;
+        items.push({
+          icon: ic, path: new Path2D(ic.d), sc: sc,
+          bw: ic.w * sc, bh: ic.h * sc,
+          r: Math.max(ic.h * sc * 0.42, ic.w * sc * 0.42),
+          x: W * (0.2 + 0.6 * ((j + 0.5) / Q5_ICON_PLAN.length)) + (Math.random() - 0.5) * W * 0.12,
+          y: -ic.h * sc - (n + j) * (H * 0.24) - Math.random() * 140,
+          vx: (Math.random() - 0.5) * 30, vy: 0,
+          rot: (Math.random() - 0.5) * 0.8,
+          vr: (Math.random() - 0.5) * 0.4
+        });
+      });
+    }
+
+    // closest point on the hand, so we can tell when a label is in its way
+    function handHit(it, ang, len, halfW, omega) {
+      const ex = cx + Math.cos(ang) * len, ey = cy + Math.sin(ang) * len;
+      const dx = ex - cx, dy = ey - cy;
+      const L2 = dx * dx + dy * dy;
+      let t = L2 ? ((it.x - cx) * dx + (it.y - cy) * dy) / L2 : 0;
+      t = Math.max(0, Math.min(1, t));
+      const px = cx + dx * t, py = cy + dy * t;
+      let nx = it.x - px, ny = it.y - py;
+      let d = Math.hypot(nx, ny);
+      const hit = it.r + halfW;
+      if (d >= hit) return;
+      if (d < 0.001) { nx = Math.cos(ang + Math.PI / 2); ny = Math.sin(ang + Math.PI / 2); d = 1; }
+      nx /= d; ny /= d;
+      const push = hit - d;
+      it.x += nx * push;
+      it.y += ny * push;
+      // the hand is moving: hand it the speed it has at that radius
+      const armR = Math.hypot(px - cx, py - cy);
+      const sp = omega * armR;
+      const tx = -Math.sin(ang), ty = Math.cos(ang);
+      it.vx += tx * sp * 0.65 + nx * 26;
+      it.vy += ty * sp * 0.65 + ny * 26;
+      it.vr += (nx * ty - ny * tx) * 0.05;
+    }
+
+    function step(dt, now) {
+      const wOm = (Math.PI * 2) / (MIN_TURN / 1000);
+      const hOm = (Math.PI * 2) / (HOUR_TURN / 1000);
+      minA += wOm * dt;
+      hourA += hOm * dt;
+
+      const minLen = dial * 0.92, hourLen = dial * 0.58;
+
+      // gravity carries them in, then lets go — after that it is weightless
+      const wasFalling = settleT < SETTLE;
+      settleT += dt;
+      const g = settleT < SETTLE ? 1100 * (1 - settleT / SETTLE) : 0;
+      const tw = settleT < SETTLE * 0.7 ? 0 : 1;      // turbulence waits its turn
+
+      // the moment gravity lets go, shed the speed it built up — otherwise they
+      // carry on sinking and it never feels weightless
+      if (wasFalling && settleT >= SETTLE) {
+        for (let i = 0; i < items.length; i++) { items[i].vy *= 0.25; items[i].vx *= 0.6; }
+      }
+      const R0 = dial * 1.25;
+
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (drag && drag.it === it) continue;          // held: physics hands off
+
+        it.vy += g * dt;
+        it.vx += tw * (Math.sin(now / 1700 + i * 1.7) * 6 * dt + (Math.random() - 0.5) * 6 * dt);
+        it.vy += tw * (Math.cos(now / 2100 + i * 2.3) * 6 * dt + (Math.random() - 0.5) * 6 * dt);
+
+        // gentle draw back toward the dial, but only once outside it
+        if (g === 0) {
+          const ox = cx - it.x, oy = cy - it.y;
+          const d = Math.hypot(ox, oy);
+          if (d > R0 && d > 0.01) {
+            const f = (d - R0) * 2.2;
+            it.vx += (ox / d) * f * dt;
+            it.vy += (oy / d) * f * dt;
           }
         }
 
-      } else {
-        leftLine.style.transform = 'rotate(0deg)';
-        leftLine.style.opacity = '0.9';
-        rightLine.style.transform = 'rotate(0deg)';
-        rightLine.style.opacity = '0.9';
-        for (let i = 0; i < NUM_INNER; i++) {
-          innerLines[i].style.opacity = '0';
-        }
+        it.x += it.vx * dt;
+        it.y += it.vy * dt;
+        it.rot += it.vr * dt;
+        const damp = g > 0 ? 0.999 : 0.997;
+        it.vx *= damp; it.vy *= damp; it.vr *= 0.985;
+
+        handHit(it, minA, minLen, 5, wOm);
+        handHit(it, hourA, hourLen, 9, hOm);
+        if (it.entered) for (let b = 0; b < solids.length; b++) boxHit(it, solids[b]);
+
+        // soft walls, once it has actually entered the frame
+        const m = it.r + 4;
+        if (it.x < m) { it.x = m; it.vx = Math.abs(it.vx) * 0.6; }
+        if (it.x > W - m) { it.x = W - m; it.vx = -Math.abs(it.vx) * 0.6; }
+        if (it.y > m && it.y < m + 1) { /* noop */ }
+        if (it.y > H - m) { it.y = H - m; it.vy = -Math.abs(it.vy) * 0.55; }
+        if (it.entered && it.y < m) { it.y = m; it.vy = Math.abs(it.vy) * 0.6; }
+        if (!it.entered && it.y > m) it.entered = true;
       }
 
-      fanAnimId = requestAnimationFrame(animateFan);
+      // labels bump each other apart
+      for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+          const a = items[i], b = items[j];
+          let dx = b.x - a.x, dy = b.y - a.y;
+          let d = Math.hypot(dx, dy);
+          const min = a.r + b.r;
+          if (d >= min || d === 0) continue;
+          dx /= d; dy /= d;
+          const push = (min - d) / 2;
+          a.x -= dx * push; a.y -= dy * push;
+          b.x += dx * push; b.y += dy * push;
+          const p = (a.vx - b.vx) * dx + (a.vy - b.vy) * dy;
+          if (drag && (drag.it === a || drag.it === b)) {
+            const held = drag.it === a ? a : b, free = drag.it === a ? b : a;
+            const sgn = free === b ? 1 : -1;
+            free.x += dx * (min - d) * 0.9 * sgn;
+            free.y += dy * (min - d) * 0.9 * sgn;
+            free.vx += dx * 90 * sgn; free.vy += dy * 90 * sgn;
+            continue;
+          }
+          if (p > 0) {
+            a.vx -= dx * p * 0.7; a.vy -= dy * p * 0.7;
+            b.vx += dx * p * 0.7; b.vy += dy * p * 0.7;
+          }
+        }
+      }
     }
 
-    fanAnimId = requestAnimationFrame(animateFan);
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      // the labels, as flat chips — and the seasonal shapes between them
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (it.path) {
+          ctx.save();
+          ctx.translate(it.x, it.y);
+          ctx.rotate(it.rot);
+          ctx.scale(it.sc, it.sc);
+          ctx.translate(-it.icon.w / 2, -it.icon.h / 2);
+          ctx.fillStyle = it.icon.col;
+          ctx.fill(it.path);
+          ctx.restore();
+          continue;
+        }
+        ctx.save();
+        ctx.translate(it.x, it.y);
+        ctx.rotate(it.rot);
+        const w = it.bw, h = it.bh, rr = it.chip.pill ? h / 2 : Math.min(3, h * 0.10);
+        ctx.fillStyle = it.chip.bg;
+        ctx.beginPath();
+        ctx.roundRect(-w / 2, -h / 2, w, h, rr);
+        ctx.fill();
+        ctx.font = '800 ' + it.fs + 'px Pretendard, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = it.chip.fg;
+        ctx.fillText(it.t, 0, h * 0.02);
+        ctx.restore();
+      }
+
+      // hands last, so they sweep over the labels they are pushing
+      function hand(ang, len, w, col) {
+        ctx.save();
+        ctx.strokeStyle = col;
+        ctx.lineWidth = w; ctx.lineCap = 'butt';
+        ctx.beginPath();
+        ctx.moveTo(cx - Math.cos(ang) * len * 0.12, cy - Math.sin(ang) * len * 0.12);
+        ctx.lineTo(cx + Math.cos(ang) * len, cy + Math.sin(ang) * len);
+        ctx.stroke();
+        ctx.restore();
+      }
+      hand(hourA, dial * 0.58, 16, '#8A8A8A');
+      hand(minA, dial * 0.92, 7, '#444444');
+      const sq = 13;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(cx - sq / 2, cy - sq / 2, sq, sq);
+    }
+
+    function frame(ts) {
+      const now = ts || performance.now();
+      if (last === null) last = now;
+      let dt = (now - last) / 1000;
+      last = now;
+      if (!(dt > 0)) dt = 0; else if (dt > 0.05) dt = 0.05;
+
+      if (currentLang !== lang) { build(); measureSolids(); }
+      step(dt, now);
+      draw();
+      clockAnimId = requestAnimationFrame(frame);
+    }
+
+    // ── the labels can be picked up and thrown, by mouse or finger ──
+    canvas.style.pointerEvents = 'auto';
+    canvas.style.touchAction = 'none';
+    canvas.style.cursor = 'grab';
+
+    function at(px, py) {
+      for (let i = items.length - 1; i >= 0; i--) {
+        const it = items[i];
+        // test in the label's own frame, so a tilted chip is still grabbable
+        const c = Math.cos(-it.rot), s2 = Math.sin(-it.rot);
+        const dx = px - it.x, dy = py - it.y;
+        const lx = dx * c - dy * s2, ly = dx * s2 + dy * c;
+        if (Math.abs(lx) <= it.bw / 2 && Math.abs(ly) <= it.bh / 2) return it;
+      }
+      return null;
+    }
+    function local(e) {
+      const r = canvas.getBoundingClientRect();
+      return { x: e.clientX - r.left, y: e.clientY - r.top };
+    }
+    canvas.addEventListener('pointerdown', function (e) {
+      const p = local(e);
+      const it = at(p.x, p.y);
+      if (!it) return;
+      drag = { it: it, dx: it.x - p.x, dy: it.y - p.y, px: p.x, py: p.y, t: performance.now() };
+      it.vx = it.vy = 0;
+      canvas.style.cursor = 'grabbing';
+      if (canvas.setPointerCapture) { try { canvas.setPointerCapture(e.pointerId); } catch (err) {} }
+      e.preventDefault();
+    });
+    canvas.addEventListener('pointermove', function (e) {
+      const p = local(e);
+      if (!drag) { canvas.style.cursor = at(p.x, p.y) ? 'grab' : 'default'; return; }
+      const now = performance.now();
+      const dt = Math.max(8, now - drag.t) / 1000;
+      drag.it.x = p.x + drag.dx;
+      drag.it.y = p.y + drag.dy;
+      // remember how fast it was moving, so letting go throws it
+      drag.it.vx = (p.x - drag.px) / dt;
+      drag.it.vy = (p.y - drag.py) / dt;
+      drag.px = p.x; drag.py = p.y; drag.t = now;
+      e.preventDefault();
+    });
+    function release(){
+      if (!drag) return;
+      drag.it.vx = Math.max(-1400, Math.min(1400, drag.it.vx));
+      drag.it.vy = Math.max(-1400, Math.min(1400, drag.it.vy));
+      drag.it.vr += (Math.random() - 0.5) * 0.4;
+      drag = null;
+      canvas.style.cursor = 'grab';
+    }
+    canvas.addEventListener('pointerup', release);
+    canvas.addEventListener('pointercancel', release);
+
+    window.addEventListener('resize', function () { sizeUp(); build(); });
+    sizeUp();
+    build();
+    clockAnimId = requestAnimationFrame(frame);
   }
 
-  // ── Q6 'PLAN A' letter scatter & staccato assembly animation ──
   let planStarted = false;
   let planAnimId  = null;
 
