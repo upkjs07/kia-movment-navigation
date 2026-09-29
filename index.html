@@ -228,6 +228,76 @@
     .plate-go { display: inline-block; margin-left: .42em; animation: go-nudge 1.9s ease-in-out infinite; }
     .plate:focus-visible { outline: 2px solid #F4F2ED; outline-offset: 6px; }
 
+
+    /* ── hero variants A / B ── */
+    #hero-a, #hero-b { position: absolute; inset: 0; }
+    /* display:flex below would otherwise beat the hidden attribute */
+    #hero-a[hidden], #hero-b[hidden] { display: none !important; }
+
+    /* ── A: a bordered panel of type that tilts, the lines sliding under gravity ── */
+    #hero-a {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: clamp(18px, 3.6vh, 44px);
+      background: #000;
+      font-family: 'TWK Everett', Pretendard, 'Noto Sans KR', sans-serif;
+    }
+    /* the running head sits outside the panel and never tilts; it is set to the
+       panel's own width so the outer words line up with the panel edges */
+    #hb-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      width: 100%;
+      margin: 0 0 clamp(8px, 1.4vh, 16px);
+      font-size: clamp(11px, 1.05vw, 17px);
+      font-weight: 700; letter-spacing: .01em;
+      color: #F4F2ED;
+    }
+
+    #hb-stage {
+      width: min(90vw, 62vh, 740px);
+      cursor: grab; touch-action: pan-y;
+      -webkit-user-select: none; user-select: none;
+    }
+    #hb-stage.is-dragging { cursor: grabbing; }
+    /* head and panel turn together, as one printed sheet */
+    #hb-rot { display: flex; flex-direction: column; will-change: transform; }
+    #hb-panel {
+      width: 100%; aspect-ratio: .95; box-sizing: border-box;
+      background: #0A0A0A;
+    }
+    #hb-frame {
+      box-sizing: border-box; height: 100%;
+      border: clamp(2px, .3vw, 4px) solid #F4F2ED;
+    }
+    #hb-stack { display: flex; flex-direction: column; width: 100%; height: 100%; }
+    .hb-row {
+      position: relative; flex: 1 1 0; min-height: 0;
+      border-bottom: clamp(2px, .3vw, 4px) solid #F4F2ED;
+    }
+    .hb-row:last-child { border-bottom: 0; }
+    .hb-lane { position: absolute; left: 3.4%; right: 3.4%; top: 0; bottom: 0; }
+    @keyframes hb-rise { from { opacity: 0; } to { opacity: 1; } }
+    /* rests fully drawn — a stalled animation still leaves the copy readable */
+    .hb-chunk {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      display: flex; align-items: center;
+      white-space: nowrap; line-height: 1;
+      font-weight: 700; letter-spacing: -.03em; color: #F4F2ED;
+      font-size: var(--fs, 42px);
+      will-change: transform;
+      animation: hb-rise .7s ease backwards;
+    }
+
+    #hb-cta {
+      border: 0; padding: .7em 1.4em;
+      background: #FF2425; color: #0A0A0A;
+      font-family: inherit; font-weight: 700;
+      font-size: clamp(13px, 1.25vw, 19px); letter-spacing: -.01em;
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+    #hb-cta:hover { background: #FF3B3C; }
+    #hb-cta:focus-visible { outline: 2px solid #F4F2ED; outline-offset: 5px; }
+    @media (prefers-reduced-motion: reduce) { .hb-chunk { animation: none; } }
     #hero-hint {
       position: absolute; left: 0; right: 0; bottom: clamp(10px, 2.2vh, 26px);
       z-index: 4; margin: 0; text-align: center;
@@ -600,11 +670,17 @@
       #sh.on{transform:translate(-50%,0)}}
 
     /* ── Language Switcher Button (Top Right) ── */
-    #lang-toggle-wrap {
+    /* the rail does the fixing now, so the pills can sit side by side */
+    #tool-rail {
       position: fixed;
       top: clamp(16px, 3vw, 28px);
       right: clamp(16px, 3vw, 28px);
       z-index: 120;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #lang-toggle-wrap, #ab-toggle-wrap {
       display: flex;
       align-items: center;
       gap: 5px;
@@ -661,11 +737,18 @@
 </head>
 <body>
 
-<!-- Language Switcher (Top Right on all pages) -->
-<div id="lang-toggle-wrap">
-  <button type="button" id="lang-en-btn" class="lang-btn" onclick="setLang('en')">EN</button>
-  <span class="lang-divider">/</span>
-  <button type="button" id="lang-kr-btn" class="lang-btn active" onclick="setLang('kr')">KR</button>
+<!-- Hero variant + language switchers (top right) -->
+<div id="tool-rail">
+  <div id="ab-toggle-wrap">
+    <button type="button" id="hero-a-btn" class="lang-btn active" onclick="setHeroVariant('A')">A</button>
+    <span class="lang-divider">/</span>
+    <button type="button" id="hero-b-btn" class="lang-btn" onclick="setHeroVariant('B')">B</button>
+  </div>
+  <div id="lang-toggle-wrap">
+    <button type="button" id="lang-en-btn" class="lang-btn" onclick="setLang('en')">EN</button>
+    <span class="lang-divider">/</span>
+    <button type="button" id="lang-kr-btn" class="lang-btn active" onclick="setLang('kr')">KR</button>
+  </div>
 </div>
 
 <!-- Navigation arrows -->
@@ -688,9 +771,22 @@
   <div class="slide" id="slide-1">
 
     <main id="hero">
-      <div id="hero-plates"></div>
-      <canvas id="hero-flakes" aria-hidden="true"></canvas>
-      <p id="hero-hint"></p>
+      <div id="hero-a">
+        <div id="hb-stage">
+          <div id="hb-rot">
+            <p id="hb-head"><span>MOVEMENT</span><span>That</span><span>INSPIRES</span></p>
+            <div id="hb-panel"><div id="hb-frame"><div id="hb-stack"></div></div></div>
+          </div>
+        </div>
+        <button type="button" id="hb-cta" onclick="goToSlide(2)">
+          <span class="js-intro-btn">1분 시작하기</span>
+        </button>
+      </div>
+      <div id="hero-b" hidden>
+        <div id="hero-plates"></div>
+        <canvas id="hero-flakes" aria-hidden="true"></canvas>
+        <p id="hero-hint"></p>
+      </div>
     </main>
   </div>
 
@@ -938,10 +1034,12 @@
     document.getElementById('lang-en-btn').classList.toggle('active', lang === 'en');
     document.getElementById('lang-kr-btn').classList.toggle('active', lang === 'kr');
 
-    if (typeof window.renderHero === 'function') window.renderHero();
+    if (typeof window.renderCopyHero === 'function') window.renderCopyHero();
+    if (typeof window.renderPlateHero === 'function') window.renderPlateHero();
 
     const t = I18N[lang];
-    document.getElementById('intro-btn-text').textContent = t.introBtn;
+    // both hero variants carry a start button, so this is a class, not an id
+    document.querySelectorAll('.js-intro-btn').forEach(function (el) { el.textContent = t.introBtn; });
     document.getElementById('q1-text').innerHTML = t.q1;
     document.getElementById('q1-a1').textContent = t.q1_a1;
     document.getElementById('q1-a2').textContent = t.q1_a2;
@@ -1043,6 +1141,8 @@
 
     updateNavVisibility();
     syncQ1Cursor();
+    const ab = document.getElementById('ab-toggle-wrap');
+    if (ab) ab.hidden = (n !== 1);
 
     if (n === 2) setTimeout(startQ1, 200);
     if (n === 3) setTimeout(startQ2, 400);
@@ -1052,7 +1152,7 @@
     if (n === 7) setTimeout(startPlan, 400);
   }
 
-  // ── Hero: a scatter of label plates ──
+  // ── Hero B: a scatter of label plates ──
   // Four printed labels dropped across the black. Each one can be picked up and
   // moved; the red one is the button through to question one. A snowflake or a
   // sparkle drops past every second or so and ricochets off whatever it hits.
@@ -1105,6 +1205,7 @@
                h: Math.max(0, host.clientHeight - p.el.offsetHeight) };
     }
     function place() {
+      if (!host.clientWidth) return;      // hidden: measuring now would zero every plate
       for (let i = 0; i < plates.length; i++) {
         const p = plates[i], b = bounds(p);
         if (p.moved) { p.x = Math.min(p.x, b.w); p.y = Math.min(p.y, b.h); }
@@ -1127,7 +1228,7 @@
           '<span class="plate-in" style="animation-delay:' + (0.18 + i * 0.13).toFixed(2) + 's">' +
             '<span class="plate-frame">' +
               '<span class="plate-row plate-top">' +
-                '<span class="plate-title"' + (row.cta ? ' id="intro-btn-text"' : '') + '></span>' +
+                '<span class="plate-title' + (row.cta ? ' js-intro-btn' : '') + '"></span>' +
                 '<span class="plate-value"></span>' +
               '</span>' +
               '<span class="plate-row plate-bot">' +
@@ -1194,7 +1295,7 @@
     });
 
     addEventListener('resize', place);
-    window.renderHero = build;
+    window.renderPlateHero = build;
     build();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(place, function () {});
 
@@ -1273,17 +1374,330 @@
       let dt = (now - last) / 1000;
       last = now;
       if (!(dt > 0)) dt = 0; else if (dt > 0.05) dt = 0.05;
-      if (now > nextAt && bits.length < MAX) {
-        bits.push(drop());
-        nextAt = now + 700 + Math.random() * 1300;
+      // the canvas is measured lazily: this hero starts hidden, so its size is
+      // only knowable once it is actually on screen
+      if (host.clientWidth && (W !== host.clientWidth || H !== host.clientHeight)) fit();
+      if (host.clientWidth) {
+        if (now > nextAt && bits.length < MAX) {
+          bits.push(drop());
+          nextAt = now + 700 + Math.random() * 1300;
+        }
+        tick(dt); paint();
       }
-      tick(dt); paint();
       requestAnimationFrame(frame);
     }
     addEventListener('resize', fit);
+    // this hero starts hidden, so its size is only knowable once it is shown —
+    // the variant switch calls this
+    window.resizeHeroFlakes = fit;
     fit();
     requestAnimationFrame(frame);
   })();
+
+  // ── Hero A: a panel of type that tilts, the lines sliding under gravity ──
+  // The panel rocks 0° → +15° → −15° on its own. Drag it and you take over, out
+  // to ±30°; let go and it eases back to 0, holds, then picks the rock up again.
+  //
+  // The lines are not placed by angle — each one is a body on its own rail, so
+  // tilting gives it real acceleration, it gathers speed and thumps off the wall
+  // with some bounce left in it. A line that fills its rail has nowhere to go; a
+  // short one travels the furthest, which is the point of the thing.
+  const HERO_COPY = {
+    kr: [
+      ['2027년의', '☺ 나는'],
+      ['(어디로 움직여야 할까요?)'],
+      ['✳ 1분 동안', '⑥개의 질문'],
+      ['답하고 /.'],
+      ['놀라운 이동을 ®'],
+      ['경험하세요 / KIA*']
+    ],
+    en: [
+      ['in 2027,', '☺ and so'],
+      ['(where will I be moving?)'],
+      ['✳ one minute /', '⑥ questions'],
+      ['answer them /.'],
+      ['find a movement ®'],
+      ['that surprises you']
+    ]
+  };
+
+  (function () {
+    const stage = document.getElementById('hb-stage');
+    const rot   = document.getElementById('hb-rot');
+    const panel = document.getElementById('hb-panel');
+    const stack = document.getElementById('hb-stack');
+    if (!stage || !rot || !panel || !stack) return;
+
+    const AUTO_DEG = 15;     // how far it tilts on its own
+    const MAX_DEG  = 30;     // how far a drag can take it
+    const GAIN     = 64;     // degrees of tilt per screen-width of drag
+    const HOLD     = 1.05;   // seconds sitting at 0 before the rock resumes
+    // 0 → right → left → 0, each leg eased hard at both ends so the panel
+    // snaps away and arrives slowly — the angle spends its time at the stops
+    const EZ = [0.85, 0, 0.12, 1];
+    const TRACK = [
+      { to:  AUTO_DEG, move: 0.80, hold: 0.42 },
+      { to: -AUTO_DEG, move: 1.10, hold: 0.42 },
+      { to:  0,        move: 0.80, hold: 1.25 }
+    ];
+
+    // a real cubic-bezier: solve x for t by bisection, then read y
+    function ease(p, x1, y1, x2, y2) {
+      if (p <= 0) return 0;
+      if (p >= 1) return 1;
+      let lo = 0, hi = 1, t = p;
+      for (let i = 0; i < 18; i++) {
+        t = (lo + hi) / 2;
+        const u = 1 - t;
+        const x = 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t;
+        if (x < p) lo = t; else hi = t;
+      }
+      const u = 1 - t;
+      return 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t;
+    }
+
+    const G        = 2900;   // px/s² of pull along a level rail
+    const DAMP     = 0.62;   // velocity kept per second of sliding
+    const REST     = 0.44;   // how much speed survives hitting a wall
+    const STILL    = 7;      // below this, and with the panel level, it settles
+
+    let rows = [], ang = 0;
+    let mode = 'auto', held = 0, drag = null, last = null;
+    let leg = 0, legT = 0, legFrom = 0;
+
+    function build() {
+      const copy = HERO_COPY[currentLang] || HERO_COPY.kr;
+      stack.textContent = '';
+      rows = [];
+      copy.forEach(function (chunks, i) {
+        const row = document.createElement('div');
+        row.className = 'hb-row';
+        const lane = document.createElement('div');
+        lane.className = 'hb-lane';
+        row.appendChild(lane);
+        stack.appendChild(row);
+        const bodies = chunks.map(function (text, k) {
+          const el = document.createElement('span');
+          el.className = 'hb-chunk';
+          el.textContent = text;
+          el.style.animationDelay = (0.1 + (i * 2 + k) * 0.05).toFixed(2) + 's';
+          lane.appendChild(el);
+          return { el: el, x: 0, v: 0, w: 0 };
+        });
+        rows.push({ lane: lane, bodies: bodies, w: 0, flip: i % 2 });
+      });
+      measure(true);
+    }
+
+    // One type size for every line, chosen so the widest row still fits — then
+    // widths are cached, because measuring per frame would thrash layout.
+    function measure(reset) {
+      const pw = panel.clientWidth;
+      if (!pw) return;
+      panel.style.setProperty('--pw', pw + 'px');
+      const base = pw * 0.098;
+      panel.style.setProperty('--fs', base + 'px');
+      let worst = 1;
+      rows.forEach(function (r) {
+        r.w = r.lane.clientWidth;
+        let sum = 0;
+        r.bodies.forEach(function (b) { sum += b.el.offsetWidth; });
+        sum += gapFor(base) * (r.bodies.length - 1);
+        if (r.w > 0 && sum > r.w) worst = Math.max(worst, sum / r.w);
+      });
+      const fs = base / worst;
+      panel.style.setProperty('--fs', fs + 'px');
+      rows.forEach(function (r) {
+        r.w = r.lane.clientWidth;
+        r.bodies.forEach(function (b) { b.w = b.el.offsetWidth; });
+        if (reset) layout(r, fs);
+        else clampRow(r, fs);
+      });
+      paint();
+    }
+
+    function gapFor(fs) { return fs * 0.34; }
+
+    // at rest the rows sit alternately against the left and right wall, and a
+    // row holding two pieces spreads them to either end
+    function layout(r, fs) {
+      const n = r.bodies.length;
+      if (n === 1) {
+        const slack = Math.max(0, r.w - r.bodies[0].w);
+        r.bodies[0].x = r.flip ? slack : 0;
+      } else {
+        let used = 0;
+        r.bodies.forEach(function (b) { used += b.w; });
+        const gap = Math.max(gapFor(fs), (r.w - used) / (n - 1));
+        let x = 0;
+        r.bodies.forEach(function (b) { b.x = x; x += b.w + gap; });
+        // then each end is pushed out onto its own wall
+        r.bodies[0].x = 0;
+        r.bodies[n - 1].x = Math.max(0, r.w - r.bodies[n - 1].w);
+      }
+      r.bodies.forEach(function (b) { b.v = 0; });
+      clampRow(r, fs);
+    }
+
+    // walls first, then neighbours, a few passes so a chain settles
+    function clampRow(r, fs) {
+      const g = gapFor(fs), n = r.bodies.length;
+      for (let pass = 0; pass < 3; pass++) {
+        for (let i = 0; i < n; i++) {
+          const b = r.bodies[i];
+          if (b.x < 0) { b.x = 0; if (b.v < 0) b.v = -b.v * REST; }
+          const max = r.w - b.w;
+          if (b.x > max) { b.x = max; if (b.v > 0) b.v = -b.v * REST; }
+        }
+        for (let i = 1; i < n; i++) {
+          const a = r.bodies[i - 1], b = r.bodies[i];
+          const overlap = (a.x + a.w + g) - b.x;
+          if (overlap > 0) {
+            a.x -= overlap / 2; b.x += overlap / 2;
+            const va = a.v, vb = b.v;          // equal weights, so they trade
+            a.v = vb * REST; b.v = va * REST;
+          }
+        }
+      }
+    }
+
+    function step(dt) {
+      const a = G * Math.sin(ang * Math.PI / 180);
+      const keep = Math.pow(DAMP, dt);
+      const fs = parseFloat(panel.style.getPropertyValue('--fs')) || 40;
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        for (let k = 0; k < r.bodies.length; k++) {
+          const b = r.bodies[k];
+          if (r.w - b.w <= 0.5) { b.x = 0; b.v = 0; continue; }   // fills the rail
+          b.v = (b.v + a * dt) * keep;
+          if (Math.abs(a) < 30 && Math.abs(b.v) < STILL) b.v = 0;
+          b.x += b.v * dt;
+        }
+        clampRow(r, fs);
+      }
+    }
+
+    function paint() {
+      rot.style.transform = 'rotate(' + ang.toFixed(3) + 'deg)';
+      for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        for (let k = 0; k < r.bodies.length; k++) {
+          const b = r.bodies[k];
+          b.el.style.transform = 'translateX(' + b.x.toFixed(2) + 'px)';
+        }
+      }
+    }
+
+    stage.addEventListener('pointerdown', function (e) {
+      drag = { x: e.clientX, a: ang };
+      mode = 'drag';
+      stage.classList.add('is-dragging');
+      stage.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    stage.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      const w = stage.clientWidth || 1;
+      ang = Math.max(-MAX_DEG, Math.min(MAX_DEG, drag.a + ((e.clientX - drag.x) / w) * GAIN));
+    });
+    function release() {
+      if (!drag) return;
+      drag = null;
+      stage.classList.remove('is-dragging');
+      mode = 'return';
+    }
+    stage.addEventListener('pointerup', release);
+    stage.addEventListener('pointercancel', release);
+
+    function tilt(dt) {
+      if (mode === 'auto') {
+        const L = TRACK[leg];
+        legT += dt;
+        if (legT <= L.move) {
+          ang = legFrom + (L.to - legFrom) * ease(legT / L.move, EZ[0], EZ[1], EZ[2], EZ[3]);
+        } else if (legT <= L.move + L.hold) {
+          ang = L.to;
+        } else {
+          legFrom = L.to; leg = (leg + 1) % TRACK.length; legT = 0;
+        }
+      } else if (mode === 'return') {
+        ang += (0 - ang) * (1 - Math.pow(0.0008, dt));
+        if (Math.abs(ang) < 0.06) { ang = 0; mode = 'hold'; held = 0; }
+      } else if (mode === 'hold') {
+        held += dt;
+        // restart the rock from zero so it picks up without a jump
+        if (held >= HOLD) { mode = 'auto'; leg = 0; legT = 0; legFrom = 0; }
+      }
+    }
+
+    function frame(ts) {
+      const now = ts || performance.now();
+      if (last === null) last = now;
+      let dt = (now - last) / 1000;
+      last = now;
+      if (!(dt > 0)) dt = 0; else if (dt > 0.05) dt = 0.05;
+      tilt(dt); step(dt); paint();
+      requestAnimationFrame(frame);
+    }
+
+    addEventListener('resize', function () { measure(true); });
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () { measure(true); }, function () {});
+    }
+    window.renderCopyHero = function () { build(); ang = 0; mode = 'auto'; leg = 0; legT = 0; legFrom = 0; };
+    // a deterministic way in, for checking the physics without a pointer
+    window.__run = function (secs) {
+      ang = 0; mode = 'auto'; leg = 0; legT = 0; legFrom = 0;
+      const seen = rows.map(function (r) {
+        return r.bodies.map(function (b) { return { lo: b.x, hi: b.x, w: r.w - b.w }; });
+      });
+      let peak = 0;
+      for (let i = 0; i < Math.round((secs || 8) * 60); i++) {
+        tilt(1 / 60); step(1 / 60);
+        peak = Math.max(peak, Math.abs(ang));
+        rows.forEach(function (r, ri) {
+          r.bodies.forEach(function (b, bi) {
+            seen[ri][bi].lo = Math.min(seen[ri][bi].lo, b.x);
+            seen[ri][bi].hi = Math.max(seen[ri][bi].hi, b.x);
+          });
+        });
+      }
+      paint();
+      return { peakDeg: peak.toFixed(1), travel: seen.map(function (g) {
+        return g.map(function (v) {
+          return Math.round(v.lo) + '..' + Math.round(v.hi) + ' of ' + Math.round(v.w);
+        }).join(' | ');
+      }) };
+    };
+    window.__settle = function (deg, secs) {
+      ang = deg; mode = 'hold'; held = -1e9;
+      for (let i = 0; i < Math.round((secs || 1) * 60); i++) step(1 / 60);
+      paint();
+      return rows.map(function (r) {
+        return r.bodies.map(function (b) { return Math.round(b.x) + '/' + Math.round(r.w - b.w); }).join(',');
+      });
+    };
+    build();
+    requestAnimationFrame(frame);
+  })();
+
+  // ── which hero is on screen ──
+  let heroVariant = 'A';
+  function setHeroVariant(v) {
+    heroVariant = (v === 'B') ? 'B' : 'A';
+    const a = document.getElementById('hero-a'), b = document.getElementById('hero-b');
+    if (a) a.hidden = heroVariant !== 'A';
+    if (b) b.hidden = heroVariant !== 'B';
+    document.getElementById('hero-a-btn').classList.toggle('active', heroVariant === 'A');
+    document.getElementById('hero-b-btn').classList.toggle('active', heroVariant === 'B');
+    // rebuilding replays the entry animation, so a switch reads as an arrival
+    if (heroVariant === 'A' && window.renderCopyHero) window.renderCopyHero();
+    if (heroVariant === 'B') {
+      if (window.renderPlateHero) window.renderPlateHero();
+      if (window.resizeHeroFlakes) window.resizeHeroFlakes();
+    }
+  }
 
   // ── Steering-wheel cursor ──
   // Position is written straight from the pointer so it never lags; only the
