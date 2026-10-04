@@ -1,0 +1,111 @@
+/* 치수는 1920×1080 Figma 값을 vw 로 환산한 것. 괄호 안이 원래 px. */
+.stage {
+  position: relative; width: 100%; height: 100%;
+  overflow: hidden; background: #010206;
+  -webkit-user-select: none; user-select: none;
+}
+.canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+/* 상단 바 — Figma(68:32) top:60px, gap:18px */
+.head {
+  position: absolute; left: 50%; top: 5.56%;           /* 60 / 1080 */
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 0.94vw;     /* 18 */
+  z-index: 3; pointer-events: none; white-space: nowrap;
+}
+.arrow { width: 1.88vw; height: 1.88vw; flex: none; display: block; }   /* 36 */
+.rule  { width: 4.69vw; height: auto;  flex: none; display: block; }    /* 90 */
+.idx, .q { color: #fff; font-weight: 700; font-size: 1.88vw; letter-spacing: -.01em; }
+
+/* 한 줄 — Figma(68:53): left/right 30, 세로 중앙, gap 30.
+   30 간격은 레이블과 가운데 묶음 사이에만 있다. 묶음 안(과녁–점선–핸들–점선–과녁)은
+   간격이 0 이다 — Figma 68:68 이 gap 없는 별도 컨테이너인 것과 같다. */
+.row {
+  position: absolute; left: 1.56vw; right: 1.56vw;     /* 30 */
+  top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; gap: 1.56vw;     /* 30 */
+  z-index: 2; pointer-events: none;
+}
+
+/* 가운데 묶음. 안쪽은 전부 절대 배치다 — flex 로 밀면 핸들을 translate 로 옮겨야 하고,
+   그러면 핸들이 점선 위로 미끄러져 점선이 핸들을 파고든 것처럼 보인다. 자리를 직접
+   잡으면 점선은 늘 '과녁 끝 ~ 핸들 끝' 으로만 그려져 겹칠 일이 없다. */
+.inner { position: relative; flex: 1 0 0; min-width: 0; height: 5vw; }
+
+.label {
+  flex: none; white-space: nowrap;
+  font-weight: 700; font-size: 1.25vw;                  /* 24 */
+  padding: 0.78vw 1.25vw;                               /* 15 / 24 */
+  transition: background .25s ease, color .25s ease;
+}
+.right { text-align: right; }
+
+/* 어두운 판(Q2·Q4) — 반투명 알약, 흰 글자 */
+.dark .label { background: rgba(255,255,255,.1); color: #fff; border-radius: 100px; }
+.dark .label.on { background: #fff; color: #0A0A0A; }
+
+/* 밝은 판(Q3) — 흰 박스, 검은 글자 */
+.light .label { background: #fff; color: #000; }
+.light .label.on { background: #0A0A0A; color: #fff; }
+
+/* 과녁 — 2px dashed rgba(255,255,255,.8).
+   크기는 판마다 다르다 — 어두운 판 72(68:32), 밝은 판 96(57:686).
+   핸들 SVG 도 각각 그 크기로 뽑혀 있어서 맞춰 둬야 제 크기로 그려진다. */
+.target {
+  position: absolute; top: 0; width: 5vw; height: 5vw;
+  border: 2px dashed rgba(255,255,255,.8);
+  border-radius: 100px;
+  transition: border-color .25s ease, transform .25s ease;
+}
+.targetL { left: 0; }
+.targetR { right: 0; }
+.light .target { border-color: rgba(255,255,255,.8); }
+.hit { border-color: #fff; border-style: solid; }
+
+/* 점선 — 자리와 길이를 JS 가 매 프레임 잡는다. 과녁 바깥 끝에서 핸들 끝까지. */
+.dots {
+  position: absolute; top: 50%; height: 0;
+  border-top: 2px dashed rgba(255,255,255,.8);
+}
+
+/* 무대가 아니라 핸들만 포인터를 받는다 — 잡아야 끌린다 */
+/* 바깥은 '자리' 만 맡는다 — JS 가 매 프레임 translateX 를 덮어쓴다. */
+.knob {
+  position: absolute; top: 0; left: 0; width: 5vw; height: 5vw;
+  will-change: transform; z-index: 1;
+  pointer-events: auto; touch-action: none; cursor: grab;
+}
+.knob:active { cursor: grabbing; }
+
+/* 안쪽이 '크기' 를 맡는다. 자리와 나눠 둬야 CSS 트랜지션이 매 프레임 덮어써지는
+   translateX 와 싸우지 않는다. 흐림과 배경도 여기 있어서 원과 함께 커진다.
+   Figma 핸들 SVG 안에도 backdrop-filter 가 있지만 <img> 로 부르면 페이지 배경에
+   닿지 못해서, 같은 15px 를 여기서 건다.
+   배경색은 JS 가 매 프레임 준다 — 과녁에 다가갈수록 짙어진다. SVG 안의 흰 원 20%
+   위에 얹히는 값이라, 쉴 때 0 이면 Figma 그대로다. */
+.knobBody {
+  width: 100%; height: 100%; border-radius: 100px;
+  background-color: rgba(255, 255, 255, 0);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
+  transform: scale(1); transform-origin: 50% 50%;
+  transition: transform .3s cubic-bezier(.2, 0, .2, 1);
+}
+.grabbing { transform: scale(1.3); }
+.knob img { width: 100%; height: 100%; display: block; }
+
+.dark  .target, .dark  .knob { width: 3.75vw; height: 3.75vw; }   /* 72 */
+.light .target, .light .knob { width: 5vw;    height: 5vw;    }   /* 96 */
+.dark  .inner { height: 3.75vw; }
+.light .inner { height: 5vw; }
+
+/* 세로로 긴 화면에서는 vw 치수가 너무 작아지므로 최소값을 둔다 */
+@media (max-aspect-ratio: 1/1) {
+  .idx, .q { font-size: clamp(13px, 2.6vw, 22px); }
+  .label   { font-size: clamp(11px, 2.2vw, 18px); padding: 7px 11px; white-space: normal; max-width: 26vw; }
+  .arrow   { width: 20px; height: 20px; }
+  .rule    { width: 34px; }
+  .target, .knob { width: 58px; height: 58px; }
+  .inner { height: 58px; }
+  .row { gap: 10px; left: 10px; right: 10px; }
+}
