@@ -1,0 +1,18 @@
+/* 네 단계가 공통으로 쓰는 틀. 디자인은 아직 비어 있고 자리만 잡아 둔다. */
+
+.stage {
+  position: fixed; inset: 0; background: #060607; color: #E8E6E1;
+  display: flex; justify-content: center; overflow-y: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, 'Roboto Mono', monospace;
+}
+.inner {
+  width: min(880px, 100% - 48px);
+  display: flex; flex-direction: column; padding: 40px 0 56px;
+}
+
+/* 아직 디자인이 안 들어온 자리 */
+.slot {
+  border: 1px dashed #2A2724; border-radius: 10px;
+  padding: 22px; color: #6B6761; font-size: 12px;
+}
+.slotLabel { color: #FF8A33; letter-spacing: .08em; text-transform: uppercase; }

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
+import { Chivo_Mono, Jersey_20 } from 'next/font/google';
 import './globals.css';
 
 /* 기아 시그니처. source/2021 기아 시그니처 폰트 OTF 를 woff2 로 구운 것
@@ -17,6 +18,11 @@ const kia = localFont({
   fallback: ['Pretendard', 'Noto Sans KR', 'system-ui', 'sans-serif'],
 });
 
+/* 결과 카드(Figma 82:3)가 쓰는 두 서체. 빌드 때 내려받아 같이 배포되므로
+   런타임에 외부 요청이 없다. */
+const chivo = Chivo_Mono({ subsets: ['latin'], weight: ['400', '700'], variable: '--font-mono' });
+const jersey = Jersey_20({ subsets: ['latin'], weight: '400', variable: '--font-pixel' });
+
 export const metadata: Metadata = {
   title: 'Movement Navigator',
   description: '2026년을 돌아보고 2027년의 방향을 찾는 9개의 질문',
@@ -24,7 +30,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ko" className={kia.variable}>
+    <html lang="ko" className={`${kia.variable} ${chivo.variable} ${jersey.variable}`}>
       <body>{children}</body>
     </html>
   );

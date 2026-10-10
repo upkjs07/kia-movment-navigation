@@ -1,0 +1,66 @@
+.root { position: fixed; inset: 0; background: #000; }
+
+/* 판단 도구. 디자인이 아니다. */
+.tools {
+  position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px; z-index: 20;
+  background: rgba(12,12,14,.82);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,.14);
+  border-radius: 999px; padding: 6px 10px;
+  max-width: 94vw; overflow: auto;
+}
+.btn {
+  background: transparent; border: 1px solid rgba(255,255,255,.2);
+  color: #F4F2ED; border-radius: 999px; padding: 6px 12px;
+  font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn:hover { border-color: rgba(255,255,255,.5); }
+.on { background: #F4F2ED; color: #0A0A0A; border-color: #F4F2ED; }
+.picked { font-size: 11px; opacity: .7; padding: 0 8px; white-space: nowrap; }
+
+/* 효과 조절판 — 시안 조정용이다. 값은 전부 드래그량에 비례해 들어가므로 0 이면 꺼진다. */
+.panel {
+  position: fixed; top: 20px; right: 20px; z-index: 10;
+  display: flex; flex-direction: column; gap: 10px;
+  padding: 16px 18px; border-radius: 14px;
+  background: rgba(16, 16, 18, .72); border: 1px solid rgba(255, 255, 255, .12);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  font-size: 12px; color: #EDEDED;
+}
+.panelHead {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 24px; padding: 0; margin: -2px 0 2px; cursor: pointer;
+  background: none; border: 0; color: #EDEDED; font: inherit; font-weight: 600;
+  letter-spacing: .02em;
+}
+.chev { font-size: 15px; line-height: 1; opacity: .7; }
+.panelHead:hover .chev { opacity: 1; }
+
+.fxRow { display: grid; grid-template-columns: 96px 128px 34px; align-items: center; gap: 12px; }
+.fxName { white-space: nowrap; }
+.fxVal { text-align: right; font-variant-numeric: tabular-nums; opacity: .75; }
+.fxRange { width: 100%; accent-color: #fff; cursor: pointer; }
+.fxReset {
+  margin-top: 2px; padding: 6px 0; border-radius: 8px; cursor: pointer;
+  background: rgba(255, 255, 255, .1); color: #EDEDED;
+  border: 1px solid rgba(255, 255, 255, .14); font: inherit;
+}
+.fxReset:hover { background: rgba(255, 255, 255, .18); }
+
+/* 모드 전환 — 왼쪽 위. 배경이 뒤집히므로 버튼도 같이 뒤집힌다. */
+.scheme {
+  position: fixed; top: 20px; left: 20px; z-index: 10;
+  padding: 8px 14px; border-radius: 100px; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 600;
+  background: rgba(255, 255, 255, .12); color: #EDEDED;
+  border: 1px solid rgba(255, 255, 255, .18);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.scheme:hover { background: rgba(255, 255, 255, .22); }
+/* 밝은 배경에서는 흰 반투명 버튼이 보이지 않는다 */
+.schemeOnLight {
+  background: rgba(10, 10, 12, .10); color: #16151A;
+  border-color: rgba(10, 10, 12, .18);
+}
+.schemeOnLight:hover { background: rgba(10, 10, 12, .18); }

@@ -109,3 +109,17 @@
   .inner { height: 58px; }
   .row { gap: 10px; left: 10px; right: 10px; }
 }
+
+/* 밝은 판 — 배경이 밝으면 흰 글씨·흰 테두리가 보이지 않으므로 전부 뒤집는다.
+   셰이더 배경색(BG_LIGHT)과 여기 배경색이 같아야 경계가 안 보인다. */
+.onLight { background: #F2EFE9; }
+.onLight .idx, .onLight .q { color: #16151A; }
+.onLight.dark .label { background: rgba(10, 10, 12, .10); color: #16151A; }
+.onLight.dark .label.on { background: #16151A; color: #F2EFE9; }
+.onLight .target { border-color: rgba(10, 10, 12, .55); }
+.onLight .hit { border-color: #16151A; }
+.onLight .dots { border-top-color: rgba(10, 10, 12, .55); }
+/* 핸들 SVG 는 흰 화살표뿐이라 밝은 바탕에서 사라진다. 단색이라 반전이 안전하다 —
+   Figma 에서 밝은 판용 핸들을 받으면 이 줄은 지운다. */
+.onLight .knob img { filter: invert(1); }
+.onLight .arrow, .onLight .rule { filter: invert(1); }

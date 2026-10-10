@@ -30,6 +30,11 @@ uniform float uValue;      // -1 ‥ +1, 드래그
 uniform float uShape;      // 0 = bloom, 1 = capsule, 2 = hourglass
 uniform vec3  uCap[7];     // 캡슐 고리색 — 안에서 바깥 순서 (OKLab)
 uniform vec3  uLead;       // 끌 때 앞쪽 캡에 올라오는 색 (OKLab)
+
+/* 배경색(선형 sRGB). 가장자리는 검정이 아니라 이 색으로 사그라들어야 한다 —
+   검정으로 빼면 밝은 배경에서 검은 후광이 생긴다. 어두운 모드에서는 0 이라
+   예전과 똑같이 동작한다. */
+uniform vec3  uBg;
 uniform sampler2D uRamp;   // bloom 전용 256×1 색 띠
 
 /* 효과 세기 0‥1. 전부 드래그량(|uValue|)에 비례해 들어가므로, 가만히 있으면
@@ -135,7 +140,8 @@ void main() {
     float d = sdRoundBox(p, b, min(b.x, b.y));
     float t = clamp(-d / (min(b.x, b.y) * 1.55), 0.0, 1.0);   // 1 = 심지
     // 램프는 '바깥 → 안쪽' 순서라 뒤집어 읽는다
-    col = texture2D(uRamp, vec2(1.0 - t, 0.5)).rgb * smoothstep(0.0, 0.16, t);
+    col = mix(linearToSrgb(uBg), texture2D(uRamp, vec2(1.0 - t, 0.5)).rgb,
+              smoothstep(0.0, 0.16, t));
   } else if (uShape < 1.5) {
     /* 캡슐 — 가로로 긴 심지에서 바깥으로 겹겹의 고리가 퍼진다. 모래시계와 같은
        생각이다: 형태를 수식으로 두고 그 위의 좌표로 색을 고른다. 여기서는 그 좌표가
@@ -190,7 +196,7 @@ void main() {
     // 바깥은 검정으로 사그라든다. 끄는 일은 선형에서 해야 제 밝기로 꺼진다.
     // 바깥은 검정으로 사그라든다. 뒤쪽일수록 일찍, 더 부드럽게 — 윤곽이 날아간다.
     float edge = mix(0.80, 0.26, k * back);
-    vec3 lin = oklabToLinear(lab) * (1.0 - smoothstep(edge, 1.0, d / reachL));
+    vec3 lin = mix(uBg, oklabToLinear(lab), 1.0 - smoothstep(edge, 1.0, d / reachL));
 
     col = linearToSrgb(lin);
   } else {
@@ -264,7 +270,7 @@ void main() {
     float soft = max(mix(0.035, 0.34, u), 1.6 / max(ph * uRes.y * 0.5, 1.0));
     float mask = (1.0 - smoothstep(1.0 - soft, 1.0 + soft * 0.5, v))
                * (1.0 - smoothstep(0.98, 1.02, abs(xj) / grow));
-    lin *= mask;                            // 끄는 일은 선형에서 해야 제 밝기로 사그라든다
+    lin = mix(uBg, lin, mask);              // 섞는 일은 선형에서 해야 제 밝기로 사그라든다
 
     /* Pixel — 모래시계 '바깥' 배경에만 블록을 깐다. 칸 중심이 잎 좌표로 어디인지
        구해 그 색을 가져오므로, 잎이 더 뻗었다면 있었을 색이 배경에 흩뿌려진다.
@@ -286,7 +292,7 @@ void main() {
       float bright = 0.10 + 0.42 * hash2(cell + 5.5);                   // 칸마다 명도
       if (hash2(cell + 31.3) > 0.93) bright *= 2.6;                     // 가끔 진한 칸
       vec2 d = (uv - vec2(0.5 + sign(uValue) * 0.30, 0.5)) / vec2(0.34, 0.46);
-      lin += bl * bright * keep * uPixel * amt * exp(-dot(d, d)) * (1.0 - mask);
+      lin = mix(lin, bl * bright, keep * uPixel * amt * exp(-dot(d, d)) * (1.0 - mask));
     }
 
     col = linearToSrgb(lin);
@@ -374,6 +380,7 @@ export interface FieldFx {
 
 export interface FieldGL {
   resize(w: number, h: number, dpr: number): void;
+  setBackground(hex: string): void;
   draw(value: number, time: number, fx?: FieldFx): void;
   destroy(): void;
 }
@@ -443,6 +450,14 @@ export function createFieldGL(canvas: HTMLCanvasElement, cfg: FieldConfig): Fiel
   const uRes = gl.getUniformLocation(prog, 'uRes');
   const uTime = gl.getUniformLocation(prog, 'uTime');
   const uValue = gl.getUniformLocation(prog, 'uValue');
+  const uBg = gl.getUniformLocation(prog, 'uBg');
+  const toLin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const setBg = (hex: string) => gl.uniform3f(uBg,
+    toLin(parseInt(hex.slice(1, 3), 16) / 255),
+    toLin(parseInt(hex.slice(3, 5), 16) / 255),
+    toLin(parseInt(hex.slice(5, 7), 16) / 255));
+  setBg('#000000');
+
   const uMelt = gl.getUniformLocation(prog, 'uMelt');
   const uJitter = gl.getUniformLocation(prog, 'uJitter');
   const uPixel = gl.getUniformLocation(prog, 'uPixel');
@@ -456,6 +471,7 @@ export function createFieldGL(canvas: HTMLCanvasElement, cfg: FieldConfig): Fiel
       gl.viewport(0, 0, canvas.width, canvas.height);
       gl.uniform2f(uRes, canvas.width, canvas.height);
     },
+    setBackground(hex) { setBg(hex); },
     draw(value, time, fx) {
       gl.uniform1f(uValue, value);
       gl.uniform1f(uTime, time);

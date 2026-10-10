@@ -34,8 +34,14 @@ export interface QuestionStageProps {
   videoSrc?: string;
   /** 효과 세기 0‥1. 전부 드래그량에 비례한다 — 0 이면 꺼진다. */
   effects?: FieldFx;
+  /** 배경이 어두운 판인지 밝은 판인지. 배경색과 글·테두리 색이 같이 뒤집힌다. */
+  scheme?: 'dark' | 'light';
   onCommit?: (choice: 1 | 2) => void;
 }
+
+/* 배경색. 셰이더가 가장자리를 이 색으로 사그라뜨리므로 CSS 와 반드시 같아야 한다. */
+export const BG_DARK = '#010206';
+export const BG_LIGHT = '#F2EFE9';
 
 /** 손을 뗐을 때 이 지점을 넘어서 있어야 과녁으로 당겨진다. 과녁에 거의 닿았을 때만. */
 const SNAP = 0.88;
@@ -43,7 +49,7 @@ const SNAP = 0.88;
 const IDLE = 0.06;
 
 export default function QuestionStage({
-  index, text, options, tone, field, videoSrc, effects, onCommit,
+  index, text, options, tone, field, videoSrc, effects, scheme = 'dark', onCommit,
 }: QuestionStageProps) {
   const stage = useRef<HTMLDivElement>(null);
   const cv = useRef<HTMLCanvasElement>(null);
@@ -72,6 +78,7 @@ export default function QuestionStage({
     let ctx2d: CanvasRenderingContext2D | null = null;
     if (field && !videoSrc) {
       gl = createFieldGL(canvas, field);
+      gl?.setBackground(scheme === 'light' ? BG_LIGHT : BG_DARK);
       if (!gl) ctx2d = canvas.getContext('2d');
     } else {
       ctx2d = canvas.getContext('2d');
@@ -160,7 +167,7 @@ export default function QuestionStage({
         gl.draw(v, time, fx.current);
       } else if (ctx2d) {
         ctx2d.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx2d.fillStyle = '#010206';
+        ctx2d.fillStyle = scheme === 'light' ? BG_LIGHT : BG_DARK;
         ctx2d.fillRect(0, 0, W, H);
         if (vid && vidReady && vid.duration) {
           const t = ((v + 1) / 2) * (vid.duration - 0.04);
@@ -222,14 +229,14 @@ export default function QuestionStage({
       kn?.removeEventListener('pointercancel', up);
       window.removeEventListener('resize', resize);
     };
-  }, [field, videoSrc, onCommit]);
+  }, [field, videoSrc, scheme, onCommit]);
 
   // 핸들 SVG 는 판마다 크기가 다르게 뽑혀 있다 — 어두운 판 72(68:32), 밝은 판 96(57:686)
   const handleSrc = asset(tone === 'dark' ? '/figma/handle-dark.svg' : '/figma/handle.svg');
   const size = tone === 'dark' ? 72 : 96;
 
   return (
-    <div ref={stage} className={`${styles.stage} ${styles[tone]}`}>
+    <div ref={stage} className={`${styles.stage} ${styles[tone]} ${scheme === 'light' ? styles.onLight : ''}`}>
       <canvas ref={cv} className={styles.canvas} />
 
       {/* 상단 바 — ‹ Q3. ── 질문 › */}

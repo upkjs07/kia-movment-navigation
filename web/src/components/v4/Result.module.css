@@ -1,0 +1,154 @@
+/* 결과 카드 — Figma 123:8633. 치수는 그 파일 값 그대로다
+   (카드 폭 653, 그림 653×653, 패널 309, 둘 사이 25). */
+
+.page {
+  position: fixed; inset: 0; background: #000;
+  display: flex; align-items: center; justify-content: center;
+  overflow: auto; padding: 40px 24px;
+}
+.stack { display: flex; align-items: flex-start; gap: 25px; }
+
+/* ── 결과 안 고르기 ────────────────────────────────────────────────────────
+   카드·패널과 별개의 떠 있는 막대다. 아래쪽 단계 이동과 같은 모양으로 두어
+   '화면을 만드는 동안 쓰는 것' 이라는 성격이 한눈에 보이게 한다. */
+.cases {
+  position: fixed; left: 50%; top: 18px; transform: translateX(-50%); z-index: 50;
+  display: flex; gap: 4px; padding: 4px; border-radius: 100px;
+  background: rgba(16, 16, 18, .82); border: 1px solid rgba(255, 255, 255, .10);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.case {
+  padding: 6px 14px; border-radius: 100px; cursor: pointer;
+  font: inherit; font-size: 11px; letter-spacing: .04em;
+  color: #8C8882; background: transparent; border: 0; white-space: nowrap;
+}
+.case:hover { color: #E8E6E1; }
+.caseOn { background: #F4F2ED; color: #101012; }
+
+/* ── 카드 ──────────────────────────────────────────────────────────────── */
+/* 그림이 정사각형이라 카드 높이 = 그림 한 변 + 아래 글 칸이다. 그래서 높이를
+   80dvh 로 맞추려면 폭을 정하면 된다 — 아래 칸이 쓰는 만큼(--below)을 빼면 그게
+   한 변이고 곧 카드 폭이다.
+
+   높이를 직접 주고 그림을 flex 로 늘리는 방법도 써 봤는데, 그러면 카드 폭이
+   그림이 아니라 '문구에서 가장 긴 줄' 에서 나와 정사각형이 깨졌다. 폭을 먼저
+   정하는 쪽이 확실하다.
+
+   위로는 막지 않는다 — 화면이 높으면 카드도 같이 커진다. 디자인 크기(653)에서
+   멈추고 싶으면 max() 를 clamp(480px, …, 653px) 로 바꾸면 된다. */
+.card {
+  /* 문구 칸 139 + 버튼 줄 45. 디자인 값이 아니라 실제로 그려진 높이를 잰 값이다
+     — 글자 크기와 패딩이 줄면서 디자인 초기값(216)과 벌어졌고, 그만큼 카드가
+     80dvh 에 못 미쳤다. 문구가 세 줄이 되면 다시 재야 한다. */
+  --below: 184px;
+  width: max(480px, calc(80dvh - var(--below)));
+  max-width: 100%; flex: none; background: #010206;
+  display: flex; flex-direction: column; align-items: stretch;
+}
+
+/* 그림. 바탕이 밝은 회색이라 어두운 칸이 빠져도 구멍으로 안 보인다. */
+.shot {
+  position: relative; width: 100%; aspect-ratio: 1 / 1;
+  background: #e0e0e0; overflow: hidden;
+}
+.seat { position: absolute; inset: 0; }
+
+.badge {
+  position: absolute; left: 0; top: 0; background: #010206;
+  padding: 12px 16px; display: flex;
+}
+.badge img { width: 69px; height: 18px; display: block; }
+
+/* 디자인에 없는 자리 — 카메라 허락 전에만 떠 있다. 그림을 가리지 않게 구석에 둔다. */
+.allow {
+  position: absolute; left: 16px; bottom: 16px;
+  background: #010206; color: #fff; border: 0; cursor: pointer;
+  padding: 8px 12px; font-family: var(--font-pixel), ui-monospace, monospace;
+  font-size: 20px; line-height: 1; letter-spacing: 0.02em;
+}
+
+.copy {
+  width: 100%; min-width: 0; background: #fff; padding: 24px;
+  display: flex; flex-direction: column; gap: 10px;
+  text-transform: uppercase; overflow: hidden;
+  font-family: var(--font-kia), Pretendard, sans-serif;
+}
+.title { font-size: 30px; font-weight: 700; line-height: normal; color: #010206; }
+/* 문구의 줄바꿈을 그대로 살린다 — 디자인이 두 줄로 끊어 둔 자리가 있다. */
+.lead {
+  font-size: 16px; font-weight: 400; line-height: 1.4; color: #6b6b6b;
+  white-space: pre-line;
+}
+
+.actions { width: 100%; min-width: 0; flex: none; display: flex; align-items: center; justify-content: space-between; }
+.act {
+  background: #e0e0e0; color: #0e0e0e; border: 0; cursor: pointer;
+  display: flex; align-items: center; gap: 12px; padding: 12px 18px; overflow: hidden;
+  font-family: var(--font-kia), Pretendard, sans-serif;
+  font-size: 18px; font-weight: 700; line-height: normal; white-space: nowrap;
+}
+/* 아이콘은 4px 사각형 다섯 개다. 자리는 Result.tsx 가 인라인으로 준다. */
+.icon { position: relative; display: block; width: 18px; height: 18px; flex: none; }
+/* 자리는 한가운데 기준이라 가운데를 맞춰 놓는다 — 디자인이 그렇게 그려 뒀다. */
+.icon span {
+  position: absolute; width: 3px; height: 3px; background: #0e0e0e;
+  transform: translate(-50%, -50%);
+}
+
+/* ── 고르는 곳 ─────────────────────────────────────────────────────────── */
+.panel {
+  width: 309px; flex: none;
+  display: flex; flex-direction: column; gap: 24px;
+  font-family: var(--font-pixel), ui-monospace, monospace;
+  color: #000;
+}
+.group { width: 100%; display: flex; flex-direction: column; align-items: flex-start; }
+
+/* 이름표와 값. 글자만큼만 넓어지고 배경이 붙는다 — 검은 바탕 위라 이게 테두리 노릇을 한다. */
+.chip {
+  background: #e0e0e0; padding: 0 8px;
+  font-size: 21px; line-height: 21px; white-space: nowrap;
+}
+/* 손잡이가 놓이는 줄. 여기만 패널 폭을 꽉 채운다. */
+.bar {
+  width: 100%; background: #e0e0e0; padding: 11px 8px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.range {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; min-width: 0; height: 6px; cursor: pointer; border: 0;
+  /* 채워진 부분은 배경으로 그린다 — 가로폭이 --fill 로 들어온다 */
+  background:
+    linear-gradient(#212121, #212121) left center / var(--fill, 0%) 100% no-repeat,
+    #b6b6b6;
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 16px; height: 16px; background: #212121; border: 0; border-radius: 0;
+}
+.range::-moz-range-thumb {
+  width: 16px; height: 16px; background: #212121; border: 0; border-radius: 0;
+}
+
+/* 네모를 고르는 줄(RESULT·STYLE)은 위아래 여백이 좁다 */
+.barTight { padding: 4px 8px; }
+.radios { flex: 1; min-width: 0; display: flex; align-items: center; gap: 30px; padding-left: 4px; }
+.radio {
+  display: flex; align-items: center; gap: 6px; cursor: pointer;
+  background: none; border: 0; padding: 0; color: #000;
+  font: inherit; font-size: 21px; line-height: 21px; white-space: nowrap;
+}
+.box, .boxOn { width: 12px; height: 12px; border: 2px solid #000; flex: none; }
+.boxOn { background: #000; }
+
+/* 화면이 좁으면 패널이 카드 아래로 내려간다 */
+@media (max-width: 1040px) {
+  .stack { flex-direction: column; align-items: center; gap: 24px; }
+  .page { align-items: flex-start; }
+  /* 세로로 쌓이면 80dvh 를 고집할 이유가 없다 — 폭에 맞추고 높이는 내용이 정한다 */
+  .card { height: auto; width: 100%; max-width: 653px; }
+  .shot { flex: none; min-height: 0; width: 100%; }
+  .panel { width: 100%; max-width: 653px; }
+}
