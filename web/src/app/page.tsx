@@ -45,7 +45,10 @@ export default function Page() {
       {now === 'hero' && <Hero onStart={() => setStep('ask')} />}
       {now === 'ask' && <Ask onDone={done} />}
       {now === 'loading' && <Loading onDone={() => setStep('result')} />}
-      {now === 'result' && <Result data={resultFor(answers)} answers={answers} />}
+      {now === 'result' && (
+        <Result data={resultFor(answers)} answers={answers}
+          onBack={() => setStep('ask')} />
+      )}
 
       {/* 만드는 동안 쓰는 단계 전환. 완성되면 지운다. */}
       <nav className={styles.steps}>

@@ -21,6 +21,12 @@ def grab(name):
     return SRC.split('const %s = `' % name, 1)[1].split('\n`;', 1)[0]
 
 
+def num(name):
+    """carGL.ts 의 상수를 그대로 꺼낸다 — 프로브에 숫자를 적어 두면 소스를 고친 뒤에도
+    옛 값으로 그려서 '안 바뀌었다' 고 착각한다. 실제로 두 번 그랬다."""
+    return SRC.split('const %s = ' % name, 1)[1].split(';', 1)[0].strip()
+
+
 def atlas_js():
     """glyphAtlas() 를 파일에서 그대로 꺼내 JS 로 바꾼다.
 
@@ -80,10 +86,15 @@ function draw(name,over){
   gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);par();
   const U=n=>gl.getUniformLocation(p,n);
   const base={uBloom:0.20,uCoverage:0.50,uDark:0.60,uGrain:0.30,uGlitch:0,uChroma:0,uGlyphs:0,
-              uCell:28,uTime:0,uMotion:0,uSpeed:0,uHasCam:0};
+              uCell:28,uTime:0,uMotion:0,uSpeed:0,uHasCam:0,uZoneCell:__ZONECELL__};
   Object.assign(base,over);
   gl.uniform1i(U('uCar'),0);gl.uniform1i(U('uGlass'),1);gl.uniform1i(U('uCam'),2);gl.uniform1i(U('uGlyph'),3);
   gl.uniform2f(U('uRes'),S,S);gl.uniform2f(U('uFit'),1,1);gl.uniform2f(U('uLevels'),0.42,0.83);
+  /* 배열 uniform(찍은 구역)은 따로 넣는다 */
+  const zb = new Float32Array(36);
+  (over.zones || []).slice(0,12).forEach(function(z,i){ zb[i*3]=z[0]; zb[i*3+1]=z[1]; zb[i*3+2]=z[2]||__ZONER__; });
+  gl.uniform3fv(U('uZones[0]'), zb);
+  delete base.zones;
   for(const k in base) gl.uniform1f(U(k),base[k]);
   gl.viewport(0,0,S,S);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT);gl.drawArrays(gl.TRIANGLES,0,3);
 }
@@ -93,7 +104,9 @@ html = (TPL.replace('__FRAG__', json.dumps(grab('FRAG')))
            .replace('__VERT__', json.dumps(grab('VERT')))
            .replace('__CASES__', json.dumps(CASES, ensure_ascii=False))
            .replace('__IMG__', json.dumps(IMG))
-           .replace('__ATLAS__', atlas_js()))
+           .replace('__ATLAS__', atlas_js())
+           .replace('__ZONECELL__', num('ZONE_CELL'))
+           .replace('__ZONER__', num('ZONE_R')))
 out = os.path.join(HERE, '..', 'public', 'fx-probe.html')
 open(out, 'w').write(html)
 print('→ http://localhost:3000/fx-probe.html  (%d판)' % len(CASES))

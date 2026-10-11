@@ -50,11 +50,15 @@ export type Answers = (0 | 1 | null)[];
 
 export interface Result {
   id: string;
-  /** 카드 제목 (48px) */
+  /** 카드 제목. 한글 의성어 한 마디다 */
   type: string;
-  /** 제목 아래 한 줄 — 공유될 때 읽히는 문장이라 인용할 만해야 한다 */
+  /** 제목 오른쪽에 픽셀 글꼴로 붙는 영문 메아리 — 같은 소리를 영어로 옮긴 것 */
+  echo: string;
+  /** 제목 아래 회색 한 줄 — 공유될 때 읽히는 문장이라 인용할 만해야 한다 */
   tagline: string;
-  /** 왜 이 차가 어울리는지 — 성향과 차를 잇는 문장 */
+  /** 검은 띠에 흰 글씨로 들어가는 '해볼 것' 한 줄 */
+  action: string;
+  /** 왜 이 차가 어울리는지 — 성향과 차를 잇는 문장. 지금 디자인에는 자리가 없다. */
   note: string;
   /** 차종 */
   model: string;
@@ -66,6 +70,9 @@ export interface Result {
    *  카메라 합성만 건너뛰고 효과는 똑같이 걸린다. */
   front?: {
     src: string;
+    /** 그림 대신 돌릴 반복 영상. 있으면 카드 아래에 전송 바가 생긴다.
+     *  src 는 영상 첫 화면이 올 때까지 보여 줄 그림으로 남는다. */
+    film?: string;
     glass?: string;
     box?: { x0: number; y0: number; x1: number; y1: number };
   };
@@ -76,21 +83,19 @@ export interface Result {
 export const RESULTS: Result[] = [
   {
     /* TODO(기획): 문구 확정 전 임시. 8타입이 정해지면 전부 교체한다. */
-    id: 'route-maker',
-    type: 'THE ROUTE MAKER',
-    /* 디자인(Figma 126:8775)이 두 줄로 끊어 둔 그대로다 — 줄바꿈이 뜻을 나누므로
-       화면에서 접히게 두지 않고 여기서 끊는다. */
-    tagline: 'Turn your high beams on in 2027.\n'
-      + 'Wherever you drive becomes the main stage!',
-    note: 'Your answers lean to space over speed — and the PV5 is the Kia built '
-      + 'for exactly that: room for the people you keep bringing along, and for '
-      + 'the plans that keep changing.',
+    /* Figma 126:8775 */
+    id: 'boom-boom',
+    type: '쿵짝쿵짝',
+    echo: 'Boom Boom!',
+    tagline: '가보고 싶던 곳으로, 함께 한 걸음 더',
+    action: '함께 가보고 싶은 여행지 한 곳씩 골라 하루 코스 만들기',
+    note: 'TODO(기획): 왜 이 차가 어울리는지. 지금 카드에는 자리가 없다.',
     model: 'KIA PV5',
     /* 디자인이 쓰는 그림. 배경을 따내어 투명하게 둔 것이다.
        차 정면으로 되돌리려면 아래를 이렇게 바꾸면 된다:
          src: '/cars/pv5-front.png', glass: '/cars/pv5-front-glass.png',
          box: { x0: 0.147, y0: 0.059, x1: 0.869, y1: 0.362 },   // 마스크에서 잰 값 */
-    front: { src: '/cars/sheep.png' },
+    front: { src: '/cars/sheep.png', film: '/cars/ship_loop_b.mp4' },
     /* TODO(기획): 기아 실제 컬러명·값으로 확인 필요 */
     colours: [
       { label: 'WHITE', name: 'Snow White Pearl', hex: '#F4F4F2' },
@@ -99,15 +104,15 @@ export const RESULTS: Result[] = [
     ],
   },
   {
-    /* Figma 126:9090 (result_B) */
-    id: 'easy-going',
-    type: 'The Easy going Companion',
-    /* 여기는 한 문단이다 — 디자인에서 줄바꿈 없이 흘러 접힌다. */
-    tagline: 'May even the back-seat nagging sound like warm music '
-      + 'on your journeys in 2027!',
-    note: 'TODO(기획): 왜 이 차가 어울리는지.',
+    /* Figma 143:11065 (result_B) */
+    id: 'flutter',
+    type: '살랑살랑',
+    echo: 'Flutter-Flutter',
+    tagline: '가끔은 계획 없이, 나만의 시간으로.',
+    action: '날씨 좋은 날, 마음이 내키면 30분 산책 나서기',
+    note: 'TODO(기획): 왜 이 차가 어울리는지. 지금 카드에는 자리가 없다.',
     model: 'KIA PV5',
-    front: { src: '/cars/sheep2.png' },
+    front: { src: '/cars/sheep2.png', film: '/cars/ship_loop_c.mp4' },
     colours: [
       { label: 'WHITE', name: 'Snow White Pearl', hex: '#F4F4F2' },
       { label: 'GREY', name: 'Gravity Grey', hex: '#6E7378' },

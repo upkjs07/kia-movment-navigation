@@ -40,6 +40,16 @@ export const DEFAULTS: Effect = {
 /** 칸 하나의 크기(CSS 픽셀). 653px 폭에서 가로로 23칸쯤 된다. */
 const CELL = 28;
 
+/* 찍어서 만드는 모자이크 구역. 레퍼런스(Brand Asset Generator)의 PIXELATE 처럼
+   그림을 누른 자리에 굵은 모자이크가 얹힌다. 한 번에 들고 있을 수 있는 개수는
+   셰이더의 배열 길이와 같아야 한다 — 넘으면 오래된 것부터 버린다. */
+export const MAX_ZONES = 12;
+/** 구역 반지름 (캔버스 가로 대비). 0.19 면 653px 에서 124px 쯤 된다. */
+const ZONE_R = 0.19;
+/** 구역 안의 칸 굵기 (바깥 칸 대비). 1 보다 작으면 더 잘다 — 바깥이 이미 굵은
+    모자이크라, 구역도 굵게 하면 단색 네모 하나로 보인다. */
+const ZONE_CELL = 0.85;
+
 /* 레퍼런스의 Motion 값(speed 8% · amount 100%). 패널에 손잡이가 없으므로 상수다.
    움직이는 것은 '칸' 뿐이다 — 어느 칸이 블록이 되는지와 그 칸의 색이 천천히 바뀐다.
    결과 결·글리치는 일부러 정지시켜 둔다. 화면 전체가 지글거리면 카드가 시끄럽고,
@@ -73,6 +83,10 @@ uniform float uGrain;
 uniform float uGlitch;
 uniform float uChroma;
 uniform vec2  uLevels;    // 원본 밝기의 아래·위 끝
+uniform vec3  uKey;       // 영상 배경색 — 이 색에서 멀수록 그림이다
+uniform float uKeyOn;     // 1 이면 색으로 실루엣을 딴다(영상), 0 이면 알파를 쓴다
+uniform vec3  uZones[12]; // 찍은 구역 (x, y, 반지름). 반지름 0 이면 빈 칸이다
+uniform float uZoneCell;  // 구역 안의 칸이 바깥보다 몇 배 굵은지
 uniform float uTime;      // 초
 uniform float uMotion;    // 0‥1 — 움직임의 양 (amount)
 uniform float uSpeed;     // 0‥1 — 빠르기 (speed)
@@ -96,10 +110,17 @@ float vnoise(vec2 q) {
    '유리 너머' 로 보이게 한다. */
 vec4 source(vec2 uv) {
   vec4 car = texture2D(uCar, uv);
-  /* 텍스처는 알파가 미리 곱해져 있다. 그대로 밝기를 재면 반투명한 가장자리가
-     '어두운 색' 으로 읽혀 팔레트의 맨 아래(보라)에 떨어지고, 실루엣 둘레에 보라
-     테두리가 생긴다. 색을 풀어서 돌려주고 알파는 따로 들고 간다. */
-  car.rgb /= max(car.a, 0.004);
+  if (uKeyOn > 0.5) {
+    /* 영상(H.264)에는 알파가 없다. 배경색에서 얼마나 떨어졌는지로 실루엣을 만든다 —
+       정지 그림에서 scripts/cutout.py 가 한 번에 하던 일을 여기서 매 프레임 한다.
+       두 문턱 사이를 부드럽게 넘겨야 경계가 톱니처럼 서지 않는다. */
+    car.a = smoothstep(0.030, 0.105, distance(car.rgb, uKey));
+  } else {
+    /* 그림 텍스처는 알파가 미리 곱해져 있다. 그대로 밝기를 재면 반투명한 가장자리가
+       '어두운 색' 으로 읽혀 팔레트의 맨 아래(보라)에 떨어지고, 실루엣 둘레에 보라
+       테두리가 생긴다. 색을 풀어서 돌려주고 알파는 따로 들고 간다. */
+    car.rgb /= max(car.a, 0.004);
+  }
   if (uHasCam < 0.5) return car;
 
   float g = texture2D(uGlass, uv).a * car.a;
@@ -321,6 +342,36 @@ void main() {
     a = max(a, mc4.a * mm);
   }
 
+  /* ── 2c. 찍은 모자이크 구역 ───────────────────────────────────────────
+     레퍼런스(Brand Asset Generator)의 PIXELATE 와 같은 것이다. Coverage 가 정하는
+     구역은 잡음이 고르고, 이것은 사람이 '여기' 라고 짚은 자리다 — 그래서 손잡이와
+     따로 움직이고, 어두운 칸을 버리는 규칙도 적용하지 않는다. 짚은 자리는 보이는
+     것이 당연하기 때문이다.
+
+     배열을 끝까지 도는 것은 WebGL1 의 반복문 제약 때문이다. 빈 칸은 반지름 0 으로
+     두고 가중치를 0 으로 눌러서 건너뛴다. */
+  vec2 asp = vec2(1.0, uRes.y / uRes.x);     // 화면이 정사각형이 아니어도 원이 되게
+  vec2 gz = max(uRes / max(uCell * uZoneCell, 6.0), vec2(1.0));
+  vec2 zc = floor(uv * gz);
+  /* 구역 안인지 아닌지를 '픽셀' 이 아니라 '블록 한가운데' 로 따진다. 픽셀마다 따지면
+     구역 가장자리가 부드럽게 흐려져서 모자이크가 아니라 얼룩으로 보인다 — 블록째
+     켜고 끄면 레퍼런스처럼 가장자리까지 각이 산다. */
+  vec2 zmid = (zc + 0.5) / gz;
+  float pz = 0.0;
+  for (int i = 0; i < 12; i++) {
+    vec3 z = uZones[i];
+    pz = max(pz, step(1e-3, z.z) * step(distance(zmid * asp, z.xy * asp), z.z));
+  }
+  if (pz > 0.5) {
+    vec4 zs = splitSource(((zmid - 0.5) / uFit) + 0.5);
+    float zt = tone(zs.rgb);
+    float zk = smoothstep(0.14, 0.42, chroma(zs.rgb));
+    vec3 zcol = mix(shade(field(uv), zt), zs.rgb, zk);
+    float zm = step(0.08, zs.a);
+    col = mix(col, zcol, zm);
+    a = max(a, zs.a * zm);
+  }
+
   /* ── 3. 마감 ───────────────────────────────────────────────────────── */
   /* 더하기로 얹으면 이미 밝은 면이 금세 1 을 넘어 흰 구멍이 뚫린다. 스크린으로
      얹으면 1 에 점근하므로, 세게 올려도 빛만 늘고 형태가 남는다. */
@@ -449,12 +500,52 @@ function levels(im: HTMLImageElement): [number, number] {
   return hi - lo < 0.08 ? [lo, lo + 0.08] : [lo, hi];
 }
 
+/* 영상 첫 화면에서 배경색과 밝기 폭을 잰다. 배경색은 네 귀퉁이의 중앙값으로 잡는다 —
+   한 점만 보면 압축 잡티에 흔들린다. 밝기 폭은 배경을 뺀 자리에서만 센다. */
+function filmProbe(v: HTMLVideoElement):
+  { key: [number, number, number]; lo: number; hi: number } | null {
+  const S = 128;
+  const cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const g = cv.getContext('2d', { willReadFrequently: true });
+  if (!g) return null;
+  try { g.drawImage(v, 0, 0, S, S); } catch { return null; }
+  let d: Uint8ClampedArray;
+  try { d = g.getImageData(0, 0, S, S).data; } catch { return null; }
+
+  const at = (x: number, y: number) => {
+    const i = (y * S + x) * 4;
+    return [d[i] / 255, d[i + 1] / 255, d[i + 2] / 255] as const;
+  };
+  const corners = [at(1, 1), at(S - 2, 1), at(1, S - 2), at(S - 2, S - 2)];
+  const key: [number, number, number] = [0, 1, 2].map((c) => {
+    const v3 = corners.map((p) => p[c]).sort((a, b) => a - b);
+    return (v3[1] + v3[2]) / 2;
+  }) as [number, number, number];
+
+  const lum: number[] = [];
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i] / 255, gg = d[i + 1] / 255, b = d[i + 2] / 255;
+    const dist = Math.hypot(r - key[0], gg - key[1], b - key[2]);
+    if (dist > 0.105) lum.push(0.2126 * r + 0.7152 * gg + 0.0722 * b);
+  }
+  if (lum.length < 64) return { key, lo: 0, hi: 1 };
+  lum.sort((a, b) => a - b);
+  const q = (t: number) => lum[Math.min(lum.length - 1, Math.floor(lum.length * t))];
+  const lo = q(0.04), hi = q(0.96);
+  return { key, lo, hi: hi - lo < 0.08 ? lo + 0.08 : hi };
+}
+
 export interface CarGL {
   resize(w: number, h: number, dpr: number): void;
   /** 매 프레임 영상을 올린다. null 이면 카메라 없이 차만 그린다. */
   setVideo(v: HTMLVideoElement | null): void;
   /** time 은 초. 칸이 천천히 바뀌는 데만 쓴다. */
   draw(e: Effect, time: number): void;
+  /** 찍은 구역. 캔버스 기준 0‥1 좌표다(위에서부터). */
+  setZones(zs: { x: number; y: number }[]): void;
+  /** 그림 자리에 영상을 쓸 때, 매 프레임 지금 화면을 올린다. */
+  setFilm(v: HTMLVideoElement | null): void;
   destroy(): void;
 }
 
@@ -572,6 +663,14 @@ export function createCarGL(
   const uChroma = gl.getUniformLocation(prog, 'uChroma');
   const uLevels = gl.getUniformLocation(prog, 'uLevels');
   gl.uniform2f(uLevels, 0, 1);
+  const uKey = gl.getUniformLocation(prog, 'uKey');
+  const uKeyOn = gl.getUniformLocation(prog, 'uKeyOn');
+  gl.uniform3f(uKey, 0.875, 0.875, 0.875);
+  gl.uniform1f(uKeyOn, 0);
+  const uZones = gl.getUniformLocation(prog, 'uZones[0]');
+  const zoneBuf = new Float32Array(MAX_ZONES * 3);
+  gl.uniform3fv(uZones, zoneBuf);
+  gl.uniform1f(gl.getUniformLocation(prog, 'uZoneCell'), ZONE_CELL);
   const uTime = gl.getUniformLocation(prog, 'uTime');
   gl.uniform1f(gl.getUniformLocation(prog, 'uMotion'), AMOUNT);
   gl.uniform1f(gl.getUniformLocation(prog, 'uSpeed'), SPEED);
@@ -605,6 +704,36 @@ export function createCarGL(
       const boxAR = ((gb.x1 - gb.x0) * imgW) / Math.max((gb.y1 - gb.y0) * imgH, 1);
       gl.uniform1f(uCamFit, (v.videoWidth / v.videoHeight) / boxAR);
       gl.uniform1f(uHasCam, 1);
+    },
+    setFilm(v) {
+      if (!v || v.readyState < 2 || !v.videoWidth) return;
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, v);
+      params();
+      if (imgW !== v.videoWidth || imgH !== v.videoHeight) {
+        imgW = v.videoWidth; imgH = v.videoHeight;
+        fit();
+        /* 배경색과 밝기 폭은 첫 화면에서 한 번만 잰다. 매 프레임 재면 장면이 바뀔
+           때마다 색이 출렁인다. */
+        const m = filmProbe(v);
+        if (m) {
+          gl.uniform3f(uKey, m.key[0], m.key[1], m.key[2]);
+          gl.uniform2f(uLevels, m.lo, m.hi);
+          gl.uniform1f(uKeyOn, 1);
+        }
+      }
+    },
+    setZones(zs) {
+      zoneBuf.fill(0);
+      for (let i = 0; i < Math.min(zs.length, MAX_ZONES); i++) {
+        zoneBuf[i * 3] = zs[i].x;
+        zoneBuf[i * 3 + 1] = zs[i].y;
+        zoneBuf[i * 3 + 2] = ZONE_R;
+      }
+      gl.uniform3fv(uZones, zoneBuf);
     },
     draw(e, time) {
       gl.uniform1f(uTime, time);

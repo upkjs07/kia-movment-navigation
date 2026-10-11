@@ -4,9 +4,27 @@
 .page {
   position: fixed; inset: 0; background: #000;
   display: flex; align-items: center; justify-content: center;
-  overflow: auto; padding: 40px 24px;
+  /* 위아래 띠를 피한다. 띠가 줄면 여백도 같이 준다. */
+  overflow: auto; padding: clamp(40px, 6vw, 60px) clamp(12px, 3vw, 24px);
 }
-.stack { display: flex; align-items: flex-start; gap: 25px; }
+/* 아래 글 칸이 쓰는 높이. 카드 폭을 여기서 빼므로 카드보다 위에 둔다 — 모바일에서는
+   카드와 패널이 같은 폭이어야 해서 둘의 부모인 여기가 기준이 된다. */
+.stack {
+  --below: 176px;
+  position: relative; display: flex; align-items: flex-start; gap: 25px;
+}
+/* 영상이 붙은 카드는 그림과 문구 사이에 전송 바 한 줄이 더 들어간다. */
+.stackFilm { --below: 220px; }
+
+/* 뒤로가기 — 카드 왼쪽 바깥. 36 + 30(간격) 만큼 밀어 둔다.
+   그림 파일은 48 로 받은 것을 그대로 쓰고 크기만 줄인다 — viewBox 가 있어
+   줄여도 흐려지지 않고, 디자인이 작아졌다고 에셋을 다시 받을 일은 아니다. */
+.back {
+  position: absolute; left: -66px; top: 8px;
+  width: 36px; height: 36px; padding: 0; border: 0; cursor: pointer;
+  background: none; line-height: 0;
+}
+.back img { display: block; width: 36px; height: 36px; }
 
 /* ── 결과 안 고르기 ────────────────────────────────────────────────────────
    카드·패널과 별개의 떠 있는 막대다. 아래쪽 단계 이동과 같은 모양으로 두어
@@ -38,11 +56,26 @@
    위로는 막지 않는다 — 화면이 높으면 카드도 같이 커진다. 디자인 크기(653)에서
    멈추고 싶으면 max() 를 clamp(480px, …, 653px) 로 바꾸면 된다. */
 .card {
-  /* 문구 칸 139 + 버튼 줄 45. 디자인 값이 아니라 실제로 그려진 높이를 잰 값이다
-     — 글자 크기와 패딩이 줄면서 디자인 초기값(216)과 벌어졌고, 그만큼 카드가
-     80dvh 에 못 미쳤다. 문구가 세 줄이 되면 다시 재야 한다. */
-  --below: 184px;
-  width: max(480px, calc(80dvh - var(--below)));
+  /* 안쪽 글자와 여백을 카드 폭에 맞춰 줄이기 위한 그릇. 뷰포트(vw)가 아니라
+     카드(cqw)를 기준으로 삼는다 — 데스크톱에서 카드는 화면 폭과 따로 놀고,
+     줄어들어야 하는 것은 '카드 안' 이기 때문이다. 카드가 화면을 꽉 채우는
+     모바일에서는 둘이 같아지므로 vw 를 쓴 것과 결과가 같다. */
+  container-type: inline-size;
+
+  /* 그림이 정사각형이라 카드 높이 = 한 변(=폭) + 아래 글 칸이다. 그래서 높이를
+     맞추려면 폭을 정하면 된다.
+
+     글자가 유동이 되면서 아래 칸 높이가 폭에 따라 움직인다. 게다가 회색 줄이 한
+     줄로 접히느냐 두 줄이냐에 따라서도 달라져서, CSS 만으로 '정확히 80dvh' 는 풀 수
+     없다 — 가운데값을 빼 두고 오차를 작게 가져간다. 정사각형은 양보할 수 없는 쪽이라
+     그쪽을 지켰다.
+
+     전송 바가 있는 카드(영상)는 그 줄만큼 더 쓰므로 값이 다르다 — 그 값(--below)은
+     위의 .stack 이 들고 있다. 여기서 다시 선언하면 .stackFilm 이 먹히지 않는다.
+     아래로는 480 에서 멈춘다 — 그림이 그보다 작아지는 것보다 넘치는 편이 낫다. */
+  /* 옆에 패널(309)과 사이(25), 바깥 여백(48)이 함께 서야 하므로 폭으로도 막는다.
+     안 막으면 화면이 높고 좁을 때 카드가 패널을 밀어낸다. */
+  width: clamp(480px, min(calc(80dvh - var(--below)), calc(100vw - 390px)), 980px);
   max-width: 100%; flex: none; background: #010206;
   display: flex; flex-direction: column; align-items: stretch;
 }
@@ -68,31 +101,119 @@
   font-size: 20px; line-height: 1; letter-spacing: 0.02em;
 }
 
+/* ── 영상 전송 바 ──────────────────────────────────────────────────────────
+   그림 바로 아래, 문구 위. 좌우 여백과 아이콘 크기는 SAVE·SHARE 줄과 같은 값이라
+   세 줄이 같은 격자에 선다. 받은 캡처가 2배(레티나)라 절반으로 읽어 맞췄다. */
+.film {
+  width: 100%; min-width: 0; background: #fff;
+  display: flex; align-items: center; gap: clamp(8px, 1.838cqw, 12px);
+  padding: clamp(9px, 2.1cqw, 14px) clamp(16px, 3.675cqw, 24px);
+}
+.play {
+  flex: none; display: block; padding: 0; border: 0; background: none; cursor: pointer;
+  width: clamp(13px, 2.757cqw, 18px); height: clamp(13px, 2.757cqw, 18px);
+  line-height: 0;
+}
+/* 일시정지 — 막대 둘. 재생은 SHARE 옆의 그 화살표를 그대로 쓴다. */
+/* 재생·일시정지 모두 시킹 바와 같은 검정이다. SAVE·SHARE 의 아이콘은 그라데이션
+   위라 흰색인데, 여기는 흰 바탕이라 그대로 쓰면 안 보인다. */
+.play i span { background: #0e0e0e; }
+/* 막대 하나가 3px. SAVE·SHARE 아이콘의 점과 같은 값이라 세 아이콘이 같은 굵기로
+   선다. 칸이 줄면 같이 준다. */
+.pause {
+  display: flex; align-items: center; justify-content: center;
+  gap: clamp(2px, 0.459cqw, 3px); height: 100%;
+}
+.pause span {
+  display: block; height: 85%; background: #0e0e0e;
+  width: clamp(2px, 0.459cqw, 3px); flex: none;
+}
+
+/* 지나온 쪽이 두껍고 짙다. 남은 쪽은 얇고 옅다 — 캡처가 그렇게 그려져 있다. */
+.seek {
+  -webkit-appearance: none; appearance: none;
+  flex: 1; min-width: 0; height: 16px; border: 0; cursor: pointer; background: none;
+}
+.seek::-webkit-slider-runnable-track {
+  height: 16px;
+  background:
+    linear-gradient(#111, #111) left center / var(--fill, 0%) 5px no-repeat,
+    linear-gradient(#c9c9c9, #c9c9c9) left center / 100% 3px no-repeat;
+}
+.seek::-moz-range-track {
+  height: 16px;
+  background:
+    linear-gradient(#111, #111) left center / var(--fill, 0%) 5px no-repeat,
+    linear-gradient(#c9c9c9, #c9c9c9) left center / 100% 3px no-repeat;
+}
+.seek::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 14px; height: 14px; margin-top: 1px;
+  background: #111; border: 0; border-radius: 0;
+}
+.seek::-moz-range-thumb {
+  width: 14px; height: 14px; background: #111; border: 0; border-radius: 0;
+}
+
 .copy {
-  width: 100%; min-width: 0; background: #fff; padding: 24px;
-  display: flex; flex-direction: column; gap: 10px;
-  text-transform: uppercase; overflow: hidden;
+  width: 100%; min-width: 0; background: #fff;
+  /* 653px 카드에서의 24px 가 3.675%. 아래 값들도 전부 그 비율에서 나왔다.
+     clamp 의 아래끝은 작은 화면에서 읽히는 한계, 위끝은 디자인 값이다. */
+  padding: clamp(16px, 3.675cqw, 24px);
+  display: flex; flex-direction: column; gap: clamp(8px, 1.838cqw, 12px);
+  overflow: hidden;
   font-family: var(--font-kia), Pretendard, sans-serif;
 }
-.title { font-size: 30px; font-weight: 700; line-height: normal; color: #010206; }
-/* 문구의 줄바꿈을 그대로 살린다 — 디자인이 두 줄로 끊어 둔 자리가 있다. */
+/* 제목 줄 — 한글 제목이 남는 폭을 먹고, 영문 메아리가 오른쪽 끝에 붙는다. */
+.heads { display: flex; align-items: center; gap: clamp(6px, 1.531cqw, 10px); width: 100%; }
+.echo {
+  flex: none; font-family: var(--font-pixel), ui-monospace, monospace;
+  font-size: clamp(18px, 5.513cqw, 36px); line-height: normal; color: #000;
+  text-transform: uppercase; white-space: nowrap;
+}
+.lines { display: flex; flex-direction: column; gap: clamp(3px, 0.613cqw, 4px); width: 100%; }
+.title {
+  flex: 1 1 0; min-width: 0;
+  font-size: clamp(20px, 5.513cqw, 36px); font-weight: 700; line-height: normal; color: #000;
+}
 .lead {
-  font-size: 16px; font-weight: 400; line-height: 1.4; color: #6b6b6b;
-  white-space: pre-line;
+  font-size: clamp(13px, 2.757cqw, 18px); font-weight: 400; line-height: 1.4; color: #6b6b6b;
+  text-transform: uppercase;
+}
+/* '해볼 것' 한 줄. 검은 띠라 카드 안에서 유일하게 반전된 자리다. */
+.action {
+  width: 100%; background: #010206; color: #fff;
+  font-size: clamp(12px, 2.450cqw, 16px); font-weight: 400; line-height: 1.4;
+  text-transform: uppercase;
 }
 
 .actions { width: 100%; min-width: 0; flex: none; display: flex; align-items: center; justify-content: space-between; }
 .act {
-  background: #e0e0e0; color: #0e0e0e; border: 0; cursor: pointer;
-  display: flex; align-items: center; gap: 12px; padding: 12px 18px; overflow: hidden;
+  border: 0; cursor: pointer; color: #fff;
+  display: flex; align-items: center; gap: clamp(8px, 1.838cqw, 12px);
+  padding: clamp(9px, 1.838cqw, 12px) clamp(13px, 2.757cqw, 18px);
+  overflow: hidden;
   font-family: var(--font-kia), Pretendard, sans-serif;
-  font-size: 18px; font-weight: 700; line-height: normal; white-space: nowrap;
+  font-size: clamp(13px, 2.757cqw, 18px); font-weight: 700; line-height: normal;
+  white-space: nowrap;
 }
+/* 두 버튼은 회색 바탕에서 그라데이션으로 바뀌었다. 왼쪽에서 오른쪽으로 흐르고,
+   SAVE 는 자홍→파랑, SHARE 는 주황→분홍이다. 카드 안의 다른 색과 같은 식구라
+   그림의 팔레트와 따로 놀지 않는다. */
+.save { background: linear-gradient(90deg, #E13CE1 0%, #38A6E3 100%); }
+.share { background: linear-gradient(90deg, #FF8605 0%, #FF2A5E 100%); }
+
 /* 아이콘은 4px 사각형 다섯 개다. 자리는 Result.tsx 가 인라인으로 준다. */
-.icon { position: relative; display: block; width: 18px; height: 18px; flex: none; }
+/* 아이콘도 같이 줄어든다. 점은 칸의 1/6 이라 한 변에서 바로 나온다. */
+.icon {
+  position: relative; display: block; flex: none;
+  width: clamp(13px, 2.757cqw, 18px); height: clamp(13px, 2.757cqw, 18px);
+}
 /* 자리는 한가운데 기준이라 가운데를 맞춰 놓는다 — 디자인이 그렇게 그려 뒀다. */
 .icon span {
-  position: absolute; width: 3px; height: 3px; background: #0e0e0e;
+  position: absolute;
+  width: clamp(2px, 0.459cqw, 3px); height: clamp(2px, 0.459cqw, 3px);
+  background: #fff;
   transform: translate(-50%, -50%);
 }
 
@@ -108,7 +229,7 @@
 /* 이름표와 값. 글자만큼만 넓어지고 배경이 붙는다 — 검은 바탕 위라 이게 테두리 노릇을 한다. */
 .chip {
   background: #e0e0e0; padding: 0 8px;
-  font-size: 21px; line-height: 21px; white-space: nowrap;
+  font-size: 18px; line-height: 21px; white-space: nowrap;
 }
 /* 손잡이가 놓이는 줄. 여기만 패널 폭을 꽉 채운다. */
 .bar {
@@ -132,23 +253,40 @@
   width: 16px; height: 16px; background: #212121; border: 0; border-radius: 0;
 }
 
-/* 네모를 고르는 줄(RESULT·STYLE)은 위아래 여백이 좁다 */
-.barTight { padding: 4px 8px; }
-.radios { flex: 1; min-width: 0; display: flex; align-items: center; gap: 30px; padding-left: 4px; }
+/* 네모를 고르는 줄(STYLE)은 위아래 여백이 좁고, 폭도 글자만큼만 쓴다 —
+   디자인에서 이 줄만 309 가 아니라 192 다(Figma 126:8998). */
+.barTight { width: auto; padding: 4px 8px; }
+.radios { display: flex; align-items: center; gap: 30px; padding-left: 4px; }
 .radio {
   display: flex; align-items: center; gap: 6px; cursor: pointer;
   background: none; border: 0; padding: 0; color: #000;
-  font: inherit; font-size: 21px; line-height: 21px; white-space: nowrap;
+  font: inherit; font-size: 18px; line-height: 21px; white-space: nowrap;
 }
 .box, .boxOn { width: 12px; height: 12px; border: 2px solid #000; flex: none; }
 .boxOn { background: #000; }
 
 /* 화면이 좁으면 패널이 카드 아래로 내려간다 */
 @media (max-width: 1040px) {
-  .stack { flex-direction: column; align-items: center; gap: 24px; }
+  /* stack 에 폭을 주지 않으면 내용 크기로 줄어드는데, 그 안의 카드가 width:100%
+     라서 서로를 참조하다 카드가 쪼그라든다(390px 화면에서 177px 까지 줄었다). */
+  /* 폭만 보고 키우면 창이 낮을 때 그림 하나가 화면을 넘겨 아래가 잘린다
+     (1035x800 에서 실제로 그랬다). 높이로도 한 번 더 막는다. 아주 낮은 창
+     (가로로 돌린 폰)에서 터무니없이 작아지지 않게 280 에서 멈춘다. */
+  .stack {
+    width: min(100%, max(280px, calc(80dvh - var(--below))));
+    max-width: 653px;
+    flex-direction: column; align-items: center; gap: 24px;
+  }
   .page { align-items: flex-start; }
-  /* 세로로 쌓이면 80dvh 를 고집할 이유가 없다 — 폭에 맞추고 높이는 내용이 정한다 */
-  .card { height: auto; width: 100%; max-width: 653px; }
+  /* 세로로 쌓이면 뒤로가기도 흐름 안으로 들어온다 */
+  .back { position: static; align-self: flex-start; }
+  /* 폭만 보고 키우면 창이 낮을 때 그림 하나가 화면을 넘겨 아래가 잘린다
+     (1035x800 에서 실제로 그랬다). 높이로도 한 번 더 막는다 — 세로로 쌓이므로
+     카드 아래 패널까지 보려면 어차피 스크롤이지만, 적어도 카드 한 장은 들어온다.
+     아주 낮은 창(가로로 돌린 폰)에서 터무니없이 작아지지 않게 280 에서 멈춘다. */
+  /* 폭 결정을 stack 이 맡는다. 카드와 패널이 둘 다 100% 를 쓰므로 두 폭이 같아진다 —
+     따로 주면 카드만 높이에 눌려 줄어들어 패널이 더 넓어 보인다. */
+  .card { height: auto; width: 100%; max-width: none; }
   .shot { flex: none; min-height: 0; width: 100%; }
-  .panel { width: 100%; max-width: 653px; }
+  .panel { width: 100%; max-width: none; }
 }
