@@ -126,12 +126,13 @@ export default function Result(
           <div className={r.copy}>
             <div className={r.heads}>
               <h1 className={r.title}>{data.type}</h1>
-              {/* 같은 소리를 영어로 옮긴 것. 픽셀 글꼴이라 제목과 성격이 갈린다. */}
-              <span className={r.echo}>{data.echo}</span>
+              {/* 같은 소리를 영어로 옮긴 것. 픽셀 글꼴이라 제목과 성격이 갈린다.
+                  영문 문구에는 없으므로, 비어 있으면 자리도 안 만든다. */}
+              {data.echo && <span className={r.echo}>{data.echo}</span>}
             </div>
             <div className={r.lines}>
-              <p className={r.lead}>{data.tagline}</p>
-              <p className={r.action}>{data.action}</p>
+              {data.tagline && <p className={r.lead}>{data.tagline}</p>}
+              {data.action && <p className={r.action}>{data.action}</p>}
             </div>
           </div>
 

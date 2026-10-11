@@ -83,12 +83,13 @@ export interface Result {
 export const RESULTS: Result[] = [
   {
     /* TODO(기획): 문구 확정 전 임시. 8타입이 정해지면 전부 교체한다. */
-    /* Figma 126:8775 */
-    id: 'boom-boom',
-    type: '쿵짝쿵짝',
-    echo: 'Boom Boom!',
-    tagline: '가보고 싶던 곳으로, 함께 한 걸음 더',
-    action: '함께 가보고 싶은 여행지 한 곳씩 골라 하루 코스 만들기',
+    id: 'route-maker',
+    type: 'THE ROUTE MAKER',
+    /* 영문 문구에는 제목 옆에 붙는 메아리가 없다 — 비워 두면 그 자리가 안 생긴다. */
+    echo: '',
+    /* 두 줄이 각각 제 칸을 쓴다. 앞 줄이 태도, 뒷 줄이 받는 말이라 강조가 뒤에 온다. */
+    tagline: 'Turn your high beams on in 2027.',
+    action: 'Wherever you drive becomes the main stage!',
     note: 'TODO(기획): 왜 이 차가 어울리는지. 지금 카드에는 자리가 없다.',
     model: 'KIA PV5',
     /* 디자인이 쓰는 그림. 배경을 따내어 투명하게 둔 것이다.
@@ -104,12 +105,14 @@ export const RESULTS: Result[] = [
     ],
   },
   {
-    /* Figma 143:11065 (result_B) */
-    id: 'flutter',
-    type: '살랑살랑',
-    echo: 'Flutter-Flutter',
-    tagline: '가끔은 계획 없이, 나만의 시간으로.',
-    action: '날씨 좋은 날, 마음이 내키면 30분 산책 나서기',
+    id: 'easy-going',
+    type: 'The Easy going Companion',
+    echo: '',
+    /* 여기는 한 문장뿐이라 회색 줄을 비우고 검은 띠에 넣었다 — 띠를 비우면 빈 검은
+       막대가 남고, 그게 회색 줄 하나 없는 것보다 눈에 띈다. */
+    tagline: '',
+    action: 'May even the back-seat nagging sound like warm music '
+      + 'on your journeys in 2027!',
     note: 'TODO(기획): 왜 이 차가 어울리는지. 지금 카드에는 자리가 없다.',
     model: 'KIA PV5',
     front: { src: '/cars/sheep2.png', film: '/cars/ship_loop_c.mp4' },
