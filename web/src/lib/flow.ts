@@ -87,9 +87,12 @@ export const RESULTS: Result[] = [
     type: 'THE ROUTE MAKER',
     /* 영문 문구에는 제목 옆에 붙는 메아리가 없다 — 비워 두면 그 자리가 안 생긴다. */
     echo: '',
-    /* 두 줄이 각각 제 칸을 쓴다. 앞 줄이 태도, 뒷 줄이 받는 말이라 강조가 뒤에 온다. */
-    tagline: 'Turn your high beams on in 2027.',
-    action: 'Wherever you drive becomes the main stage!',
+    /* 디자인이 두 줄로 끊어 둔 그대로다 — 줄바꿈이 뜻을 나누므로 화면에서 접히게
+       두지 않고 여기서 끊는다. */
+    tagline: 'Turn your high beams on in 2027.\n'
+      + 'Wherever you drive becomes the main stage!',
+    /* 검은 띠는 '해볼 것' 칸이다. 위 두 줄과 역할이 달라서 문구가 바뀌어도 남는다. */
+    action: '함께 가보고 싶은 여행지 한 곳씩 골라 하루 코스 만들기',
     note: 'TODO(기획): 왜 이 차가 어울리는지. 지금 카드에는 자리가 없다.',
     model: 'KIA PV5',
     /* 디자인이 쓰는 그림. 배경을 따내어 투명하게 둔 것이다.
@@ -108,11 +111,10 @@ export const RESULTS: Result[] = [
     id: 'easy-going',
     type: 'The Easy going Companion',
     echo: '',
-    /* 여기는 한 문장뿐이라 회색 줄을 비우고 검은 띠에 넣었다 — 띠를 비우면 빈 검은
-       막대가 남고, 그게 회색 줄 하나 없는 것보다 눈에 띈다. */
-    tagline: '',
-    action: 'May even the back-seat nagging sound like warm music '
+    /* 여기는 줄바꿈 없이 흘러 접힌다 */
+    tagline: 'May even the back-seat nagging sound like warm music '
       + 'on your journeys in 2027!',
+    action: '날씨 좋은 날, 마음이 내키면 30분 산책 나서기',
     note: 'TODO(기획): 왜 이 차가 어울리는지. 지금 카드에는 자리가 없다.',
     model: 'KIA PV5',
     front: { src: '/cars/sheep2.png', film: '/cars/ship_loop_c.mp4' },

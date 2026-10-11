@@ -176,9 +176,10 @@
   flex: 1 1 0; min-width: 0;
   font-size: clamp(20px, 5.513cqw, 36px); font-weight: 700; line-height: normal; color: #000;
 }
+/* 문구의 줄바꿈을 그대로 살린다 — 디자인이 두 줄로 끊어 둔 자리가 있다. */
 .lead {
   font-size: clamp(13px, 2.757cqw, 18px); font-weight: 400; line-height: 1.4; color: #6b6b6b;
-  text-transform: uppercase;
+  text-transform: uppercase; white-space: pre-line;
 }
 /* '해볼 것' 한 줄. 검은 띠라 카드 안에서 유일하게 반전된 자리다. */
 .action {
